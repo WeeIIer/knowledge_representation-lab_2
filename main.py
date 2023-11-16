@@ -9,18 +9,89 @@ class MainWindow(QWidget, main_window_form.Ui_main_window):
 
         self.slider_x_axis_top, self.slider_x_axis_bottom = self.__to_create_sliders()
 
-        self.lp = LP("Скорость", ["Очень низкая", "Низкая", "Средняя", "Высокая", "Очень высокая"], 0, 100)
-
         self.splitter.restoreState(SETTINGS.value("splitterSizes"))
         self.splitter_3.restoreState(SETTINGS.value("splitterSizes"))
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.starting)
 
-        self.button_start.clicked.connect(self.to_draw)
+        self.button_to_draw.clicked.connect(self.on_clicked_button_to_draw)
+        self.list_terms.itemClicked.connect(self.on_item_clicked_list_terms)
+        self.list_terms.doubleClicked.connect(self.on_double_clicked_list_terms)
+        self.slider_x_axis_top.valueChanged.connect(self.on_value_changed_slider_x_axis_top)
+        self.slider_x_axis_bottom.valueChanged.connect(self.on_value_changed_slider_x_axis_bottom)
+        self.edit_x_start.textChanged.connect(self.on_text_changed_edit_x)
+        self.edit_x_stop.textChanged.connect(self.on_text_changed_edit_x)
+        self.edit_term_title.textChanged.connect(self.on_text_changed_edit_x)
+
+        self.button_to_draw.setEnabled(False)
+        self.lp = None
 
         #self.edit_add_event.returnPressed.connect(self.on_return_pressed_edit_add_event)
 
+    def on_clicked_button_to_draw(self):
+        title = self.edit_term_title.text()
+        x_start, x_stop = self.edit_x_start.text(), self.edit_x_stop.text()
+
+        if self.lp is None:
+            self.lp = LP(title, ["Низкая", "Средняя", "Высокая"], int(x_start), int(x_stop))
+            self.add_terms_to_list()
+            self.to_draw()
+
+    def on_text_changed_edit_x(self):
+        title = self.edit_term_title.text()
+        x_start, x_stop = self.edit_x_start.text(), self.edit_x_stop.text()
+        conditions = (x_start.isdigit(), x_stop.isdigit(), bool(title.strip()))
+        if all(conditions):
+            self.button_to_draw.setEnabled(True)
+        else:
+            self.button_to_draw.setEnabled(False)
+
+    def on_double_clicked_list_terms(self):
+        i = self.list_terms.currentRow()
+        self.lp.to_discard_term(i)
+        self.list_terms.takeItem(i)
+        self.list_terms.setCurrentRow(-1)
+        self.to_change_sliders_range()
+        self.to_draw()
+
+    def on_value_changed_slider_x_axis_bottom(self):
+        i = self.list_terms.currentRow()
+        if i > -1:
+            xs = self.slider_x_axis_bottom.value()
+            self.lp.set_term_x_axis_bottom(i, *xs)
+            self.groupBox_5.setTitle(f"Редактирование нижных координат терма {xs}")
+            self.to_draw()
+
+    def on_value_changed_slider_x_axis_top(self):
+        i = self.list_terms.currentRow()
+        if i > -1:
+            xs = self.slider_x_axis_top.value()
+            self.lp.set_term_x_axis_top(i, *self.slider_x_axis_top.value())
+            self.groupBox_7.setTitle(f"Редактирование верхних координат терма {xs}")
+            self.to_draw()
+
+    def on_item_clicked_list_terms(self):
+        i = self.list_terms.currentRow()
+
+        x_axis_top = self.lp.terms[i].x_axis_top
+        x_axis_bottom = self.lp.terms[i].x_axis_bottom
+
+        self.slider_x_axis_top.setValue(x_axis_top)
+        self.slider_x_axis_bottom.setValue(x_axis_bottom)
+
+    def add_terms_to_list(self):
+        self.list_terms.addItems(self.lp.term_titles())
+        self.to_change_sliders_range()
+
+    def to_change_sliders_range(self):
+        self.slider_x_axis_bottom.setRange(self.lp.x_start, self.lp.x_stop)
+        self.slider_x_axis_bottom.setValue([self.lp.x_start, self.lp.x_stop])
+        self.groupBox_5.setTitle(f"Редактирование нижных координат терма ( ... )")
+
+        self.slider_x_axis_top.setRange(self.lp.x_start, self.lp.x_stop)
+        self.slider_x_axis_top.setValue([self.lp.x_start, self.lp.x_stop])
+        self.groupBox_7.setTitle(f"Редактирование верхних координат терма ( ... )")
 
     def to_draw(self):
         # titles = [data.title for data in self.events.plots]
