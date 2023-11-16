@@ -5,10 +5,12 @@ import os
 import sys
 from collections import namedtuple
 from itertools import repeat
+from typing import Iterator, Iterable
 
 from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem
-from PyQt5.QtGui import QPixmap, QPalette, QColor
+from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor
 from PyQt5 import QtCore, Qt, QtWidgets
+from superqt import QRangeSlider
 
 import main_window as main_window_form
 
@@ -20,7 +22,7 @@ pyrcc5 -o resources.py resources.qrc
 """
 
 SETTINGS = QtCore.QSettings("settings.ini", QtCore.QSettings.IniFormat)
-BUILDING = False  # Флаг, отвечающий за отладочные функции
+BUILDING = True  # Флаг, отвечающий за отладочные функции
 DIRNAME, _ = os.path.split(os.path.realpath(__file__))  # Путь к папке с исполняемым файлом
 matplotlib.use("agg")
 
