@@ -3,16 +3,18 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os
 import sys
+import pickle
 from collections import namedtuple
 from itertools import repeat
 from typing import Iterator, Iterable
 
-from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem, QFileDialog
 from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor
 from PyQt5 import QtCore, Qt, QtWidgets
 from superqt import QRangeSlider
 
-import main_window as main_window_form
+import function_editor_window as function_editor_window_form
+import menu_window as menu_window_form
 
 """
 pip install pyinstaller

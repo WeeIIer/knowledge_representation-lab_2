@@ -4,6 +4,7 @@ __pycache__/
 
 # Шаблоны
 *.db
+*.lp
 
 # Файлы
 fig.png
