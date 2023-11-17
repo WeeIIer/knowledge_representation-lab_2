@@ -39,6 +39,8 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.setupUi(self)
 
         self.slider_x_axis_top, self.slider_x_axis_bottom = self.__create_sliders()
+        for i in range(1, 7):
+            self.findChild(QCheckBox, f"check_err_{i}").setEnabled(False)
 
         self.splitter.restoreState(SETTINGS.value("splitterSizes"))
         self.splitter_3.restoreState(SETTINGS.value("splitterSizes"))
@@ -61,7 +63,7 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         if filename:
             with open(filename, "wb") as file:
                 pickle.dump(CURRENT_LP, file)
-            self.__add_log(f"Лингвистическая переменная сохранена в \"{CURRENT_LP.title}.lp\".")
+            # self.__add_log(f"Лингвистическая переменная сохранена в \"{CURRENT_LP.title}.lp\".")
 
     def on_return_pressed_edit_add_term(self):
         term_title = self.edit_add_term.text().strip()
@@ -70,7 +72,7 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
             self.add_terms_to_list()
             self.change_sliders_range()
             self.draw_plot()
-            self.__add_log(f"Добавлен терм \"{term_title}\".")
+            # self.__add_log(f"Добавлен терм \"{term_title}\".")
 
     def on_text_changed_edit_x(self):
         global CURRENT_LP
@@ -98,13 +100,14 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
 
     def on_double_clicked_list_terms(self):
         i = self.list_terms.currentRow()
-        term_title = CURRENT_LP.term_titles()[i]
-        CURRENT_LP.to_discard_term(i)
+        # term_title = CURRENT_LP.term_titles()[i]
+        CURRENT_LP.discard_term(i)
         self.list_terms.takeItem(i)
         self.list_terms.setCurrentRow(-1)
         self.change_sliders_range()
+        print("del here")
         self.draw_plot()
-        self.__add_log(f"Удалён терм \"{term_title}\"")
+        # self.__add_log(f"Удалён терм \"{term_title}\"")
 
     def on_value_changed_slider_x_axis_bottom(self):
         i = self.list_terms.currentRow()
@@ -150,6 +153,9 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.groupBox_7.setTitle(f"Редактирование верхних координат терма ( ... )")
 
     def draw_plot(self):
+        for i, state in enumerate(CURRENT_LP.limits(), 1):
+            self.findChild(QCheckBox, f"check_err_{i}").setChecked(state)
+        print("here")
         plt.rc("font", size=8)
         plt.rcParams["font.family"] = "Calibri"
 
@@ -183,7 +189,8 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
 
     def show(self):
         super(FunctionEditorWindow, self).show()
-        print(CURRENT_LP.limits())
+        # self.label_log.clear()
+
         if CURRENT_LP is None:
             self.edit_term_title.clear()
             self.edit_x_start.clear()
@@ -191,20 +198,22 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
             self.list_terms.clear()
             self.label_plot.clear()
             self.button_save.setEnabled(False)
-            self.__add_log("Создание новой лингвистической переменной.")
+            for i in range(1, 7):
+                self.findChild(QCheckBox, f"check_err_{i}").setEnabled(False)
+            # self.__add_log("Создание новой лингвистической переменной.")
         else:
             self.edit_term_title.setText(CURRENT_LP.title)
             self.edit_x_start.setText(str(CURRENT_LP.x_start))
             self.edit_x_stop.setText(str(CURRENT_LP.x_stop))
             self.add_terms_to_list()
-            self.__add_log(f"Редактирование лингвистической переменной \"{CURRENT_LP.title}\".")
+            # self.__add_log(f"Редактирование лингвистической переменной \"{CURRENT_LP.title}\".")
 
         self.edit_add_term.clear()
         self.change_sliders_range()
 
-    def __add_log(self, message: str):
-        timing = datetime.datetime.now().strftime("%H:%M")
-        self.text_log.append(f"{timing} {message}")
+    # def __add_log(self, message: str):
+    #     timing = datetime.datetime.now().strftime("%H:%M")
+    #     self.label_log.setText(f"Журнал: {timing} {message}")
 
     def __create_sliders(self):
         for splitter, slider_name in ((self.splitter_3, "slider_x_axis_top"), (self.splitter, "slider_x_axis_bottom")):

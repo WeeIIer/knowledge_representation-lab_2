@@ -4,12 +4,11 @@ import matplotlib
 import os
 import sys
 import pickle
-import datetime
 from collections import namedtuple
-from itertools import repeat
+from itertools import repeat, chain
 from typing import Iterator, Iterable
 
-from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem, QFileDialog, QCheckBox
 from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor
 from PyQt5 import QtCore, Qt, QtWidgets
 from superqt import QRangeSlider
