@@ -50,7 +50,7 @@ class LP:
         self.terms = self.create_terms(self.term_titles() + [title])
 
     def limits(self):
-        errors = [*repeat(True, 6)]
+        errors = [*repeat(True if self.terms_amount else False, 6)]
 
         # Требование к упорядоченности термов
         for i in range(1, self.terms_amount):

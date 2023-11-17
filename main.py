@@ -96,7 +96,6 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
                     CURRENT_LP.update_terms()
                     self.change_sliders_range()
                     self.draw_plot()
-                    self.button_save.setEnabled(True)
 
     def on_double_clicked_list_terms(self):
         i = self.list_terms.currentRow()
@@ -105,7 +104,6 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.list_terms.takeItem(i)
         self.list_terms.setCurrentRow(-1)
         self.change_sliders_range()
-        print("del here")
         self.draw_plot()
         # self.__add_log(f"Удалён терм \"{term_title}\"")
 
@@ -153,9 +151,13 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.groupBox_7.setTitle(f"Редактирование верхних координат терма ( ... )")
 
     def draw_plot(self):
-        for i, state in enumerate(CURRENT_LP.limits(), 1):
+        limits = CURRENT_LP.limits()
+
+        for i, state in enumerate(limits, 1):
             self.findChild(QCheckBox, f"check_err_{i}").setChecked(state)
-        print("here")
+
+        self.button_save.setEnabled(all(limits))
+
         plt.rc("font", size=8)
         plt.rcParams["font.family"] = "Calibri"
 
