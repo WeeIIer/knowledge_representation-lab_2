@@ -74,7 +74,7 @@ class Ui_menu_window(object):
     def retranslateUi(self, menu_window):
         _translate = QtCore.QCoreApplication.translate
         menu_window.setWindowTitle(_translate("menu_window", "Меню"))
-        self.groupBox.setTitle(_translate("menu_window", "Редактор функций принадлежности лингвистической переменной (ЛП)"))
+        self.groupBox.setTitle(_translate("menu_window", "Редактор функций принадлежности лингвистической переменной"))
         self.button_add_lp.setText(_translate("menu_window", "Создать"))
         self.button_load_lp.setText(_translate("menu_window", "Загрузить"))
 

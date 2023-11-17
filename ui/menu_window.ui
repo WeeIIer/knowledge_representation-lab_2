@@ -73,7 +73,7 @@
         </size>
        </property>
        <property name="title">
-        <string>Редактор функций принадлежности лингвистической переменной (ЛП)</string>
+        <string>Редактор функций принадлежности лингвистической переменной</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">

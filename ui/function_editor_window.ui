@@ -29,7 +29,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>Редактор функций принадлежности лингвистической переменной (ЛП)</string>
+   <string>Редактор функций принадлежности лингвистической переменной</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2">
    <property name="spacing">

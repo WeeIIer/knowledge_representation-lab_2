@@ -300,7 +300,7 @@ class Ui_function_editor_window(object):
 
     def retranslateUi(self, function_editor_window):
         _translate = QtCore.QCoreApplication.translate
-        function_editor_window.setWindowTitle(_translate("function_editor_window", "Редактор функций принадлежности лингвистической переменной (ЛП)"))
+        function_editor_window.setWindowTitle(_translate("function_editor_window", "Редактор функций принадлежности лингвистической переменной"))
         self.groupBox.setTitle(_translate("function_editor_window", "Лингвистическая переменная"))
         self.label_15.setText(_translate("function_editor_window", "Название"))
         self.label_13.setText(_translate("function_editor_window", "Минимум (ось X)"))
