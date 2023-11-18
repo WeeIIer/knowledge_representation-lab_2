@@ -2,7 +2,25 @@ from settings import *
 from functions import x_axis_iter, unique_id
 
 
-Term = namedtuple("Term", "title x_axis_bottom x_axis_top")
+class Term:
+    def __init__(self, title: str, x_lb: int, x_rb: int, x_lt: int, x_rt: int):
+        self.title = title
+        self.x_lb, self.x_rb, self.x_lt, self.x_rt = x_lb, x_rb, x_lt, x_rt
+
+    def x_axis_bottom(self) -> tuple[int, int]:
+        return self.x_lb, self.x_rb
+
+    def x_axis_top(self) -> tuple[int, int]:
+        return self.x_lt, self.x_rt
+
+    def set_x_axis_bottom(self, x_lb: int, x_rb: int):
+        self.x_lb, self.x_rb = x_lb, x_rb
+
+    def set_x_axis_top(self, x_lt: int, x_rt: int):
+        self.x_lt, self.x_rt = x_lt, x_rt
+
+    def data(self) -> tuple:
+        return self.title, self.x_lb, self.x_rb, self.x_lt, self.x_rt
 
 
 class LP:
@@ -24,16 +42,16 @@ class LP:
         x_axis_bottom = x_axis_iter(False, self.x_start, self.x_stop, term_count)
         x_axis_top = x_axis_iter(True, self.x_start, self.x_stop, term_count)
 
-        self.terms = list(map(Term, term_titles, x_axis_bottom, x_axis_top))
+        self.terms.clear()
+        for i in range(term_count):
+            self.terms.append(Term(term_titles[i], *next(x_axis_bottom), *next(x_axis_top)))
 
     def term_titles(self) -> list[str]:
-        return [title for title, _, _ in self.terms]
+        return [term.title for term in self.terms]
 
-    def set_term_x_axis_bottom(self, i: int, x_1: int, x_2: int):
-        self.terms[i].x_axis_bottom[0], self.terms[i].x_axis_bottom[1] = x_1, x_2
-
-    def set_term_x_axis_top(self, i: int, x_1: int, x_2: int):
-        self.terms[i].x_axis_top[0], self.terms[i].x_axis_top[1] = x_1, x_2
+    def discard_term(self, i: int):
+        del self.terms[i]
+        self.update_terms()
 
     def set_title(self, title: str):
         self.title = title
@@ -44,10 +62,6 @@ class LP:
     def set_x_stop(self, x_stop: int):
         self.x_stop = x_stop
 
-    def discard_term(self, i: int):
-        del self.terms[i]
-        self.update_terms()
-
     def limits(self) -> list[bool]:
         terms_count = len(self.term_titles())
         init_state = bool(terms_count)
@@ -57,24 +71,24 @@ class LP:
 
         # Требование к упорядоченности термов
         for i in range(1, terms_count):
-            prev, follow = self.terms[i - 1], self.terms[i]
-            if prev.x_axis_bottom[0] > follow.x_axis_bottom[0] or prev.x_axis_top[0] > follow.x_axis_top[0]:
+            past, future = self.terms[i - 1], self.terms[i]
+            if past.x_lb > future.x_lb or past.x_lt > future.x_lt:
                 errors[0] = False
                 break
 
         # Требование к виду «крайних» функций принадлежности лингвистической переменной
         first, last = self.terms[0], self.terms[-1]
-        pairs = [first.x_axis_bottom[0], first.x_axis_top[0], last.x_axis_bottom[1], last.x_axis_top[1]]
+        pairs = [first.x_lb, first.x_lt, last.x_rb, last.x_rt]
         errors[1] = pairs.count(self.x_start) + pairs.count(self.x_stop) == 4
 
         # Требование к полноте покрытия предметной области
-        x_axis_set = set(chain.from_iterable(range(*x_axis_bottom) for _, x_axis_bottom, _ in self.terms))
+        x_axis_set = set(chain.from_iterable(range(*term.x_axis_bottom()) for term in self.terms))
         if len(x_axis_set) != self.x_stop - self.x_start:
             errors[2] = False
 
         # Требование к разграничению понятий, описанных функциями принадлежности термов лингвистической переменной
         terms_range = range(terms_count)
-        set_from = lambda index: set(range(self.terms[index].x_axis_top[0], self.terms[index].x_axis_top[1] + 1))
+        set_from = lambda i: set(range(self.terms[i].x_lt, self.terms[i].x_rt + 1))
         x_axis_set = chain.from_iterable(set_from(i) & set_from(j) for j in terms_range for i in terms_range if i != j)
         if set(x_axis_set):
             errors[3] = False
@@ -92,26 +106,21 @@ class LP:
         if new:
             self.id = unique_id("LPs")
 
-        fields = [
-            ("lp_id", "lp_title", "x_start", "x_stop"),
-            ("lp_id", "term_id", "term_title", "x_axis_bottom_1", "x_axis_bottom_2", "x_axis_top_1", "x_axis_top_2")
-        ]
-
         data = {
             "LPs": [(self.id, self.title, self.x_start, self.x_stop)],
             "terms": []
         }
 
         for term_id, term in enumerate(self.terms):
-            data["terms"].append((self.id, term_id, term.title, *term.x_axis_bottom, *term.x_axis_top))
+            data["terms"].append((self.id, term_id, *term.data()))
 
         for row in data["LPs"]:
             if new:
                 sql = f"INSERT INTO LPs VALUES ({', '.join(repeat('?', len(row)))})"
                 CUR.execute(sql, row)
             else:
-                table_fields = (f"{field} = ?" for field in fields[0])
-                sql = f"UPDATE LPs SET {', '.join(table_fields)} WHERE lp_id = ?"
+                fields = (f"{field} = ?" for field in ("lp_id", "lp_title", "x_start", "x_stop"))
+                sql = f"UPDATE LPs SET {', '.join(fields)} WHERE lp_id = ?"
                 CUR.execute(sql, (*row, self.id))
             CON.commit()
 
@@ -135,4 +144,4 @@ class LP:
                 data[table_name] = CUR.execute(sql, (lp_id,)).fetchall()
 
             self.id, self.title, self.x_start, self.x_stop = data["LPs"].pop()
-            self.terms = [Term(term[2], [*term[3:5]], [*term[5:7]]) for term in data["terms"]]
+            self.terms = [Term(*term[2:]) for term in data["terms"]]

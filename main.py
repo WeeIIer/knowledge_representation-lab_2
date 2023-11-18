@@ -52,16 +52,6 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
         function_editor_window.show()
 
     def on_clicked_button_load_lp(self):
-        # global CURRENT_LP
-        # filename, _ = QFileDialog.getOpenFileName(self,
-        #                                           "Открыть лингвистическую переменную",
-        #                                           ".",
-        #                                           "Лингвистическая переменная (*.lp)")
-        # if filename:
-        #     with open(filename, "rb") as file:
-        #         CURRENT_LP = pickle.load(file)
-        #     self.hide()
-        functions.unique_id("LPs")
         self.hide()
         lp_selection_window.show()
 
@@ -72,8 +62,8 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.setupUi(self)
 
         self.slider_x_axis_top, self.slider_x_axis_bottom = self.__create_sliders()
-        for i, state in enumerate(repeat(False, 6), 1):
-            self.findChild(QCheckBox, f"check_err_{i}").setEnabled(state)
+        for i in range(1, 7):
+            self.findChild(QCheckBox, f"check_err_{i}").setEnabled(False)
 
         self.splitter.restoreState(SETTINGS.value("splitterSizes"))
         self.splitter_3.restoreState(SETTINGS.value("splitterSizes"))
@@ -90,22 +80,11 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
 
     def on_clicked_button_save(self):
         CURRENT_LP.save()
-        # filename, _ = QFileDialog.getSaveFileName(self,
-        #                                           "Сохранить лингвистическую переменную",
-        #                                           fr".\{CURRENT_LP.title}.lp",
-        #                                           "Лингвистическая переменная (*.lp)")
-        # if filename:
-        #     with open(filename, "wb") as file:
-        #         pickle.dump(CURRENT_LP, file)
-
 
     def on_item_clicked_list_terms(self):
         i = self.list_terms.currentRow()
-        x_axis_top = CURRENT_LP.terms[i].x_axis_top
-        x_axis_bottom = CURRENT_LP.terms[i].x_axis_bottom
-
-        self.slider_x_axis_top.setValue(x_axis_top)
-        self.slider_x_axis_bottom.setValue(x_axis_bottom)
+        self.slider_x_axis_bottom.setValue(CURRENT_LP.terms[i].x_axis_bottom())
+        self.slider_x_axis_top.setValue(CURRENT_LP.terms[i].x_axis_top())
 
     def on_double_clicked_list_terms(self):
         i = self.list_terms.currentRow()
@@ -117,17 +96,17 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
     def on_value_changed_slider_x_axis_bottom(self):
         i = self.list_terms.currentRow()
         if i > -1:
-            xs = self.slider_x_axis_bottom.value()
-            CURRENT_LP.set_term_x_axis_bottom(i, *xs)
-            self.groupBox_5.setTitle(f"Редактирование нижных координат терма {xs}")
+            x_pair = self.slider_x_axis_bottom.value()
+            CURRENT_LP.terms[i].set_x_axis_bottom(*x_pair)
+            self.groupBox_5.setTitle(f"Редактирование нижных координат терма {x_pair}")
             self.draw_plot()
 
     def on_value_changed_slider_x_axis_top(self):
         i = self.list_terms.currentRow()
         if i > -1:
-            xs = self.slider_x_axis_top.value()
-            CURRENT_LP.set_term_x_axis_top(i, *self.slider_x_axis_top.value())
-            self.groupBox_7.setTitle(f"Редактирование верхних координат терма {xs}")
+            x_pair = self.slider_x_axis_top.value()
+            CURRENT_LP.terms[i].set_x_axis_top(*x_pair)
+            self.groupBox_7.setTitle(f"Редактирование верхних координат терма {x_pair}")
             self.draw_plot()
 
     def on_text_changed_edit_lp(self):
@@ -147,8 +126,12 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
                 self.add_terms_to_list()
                 self.change_sliders_range()
                 self.draw_plot()
+                self.edit_add_term.setEnabled(True)
+            else:
+                raise ValueError
         except ValueError:
-            pass
+            self.label_plot.clear()
+            self.edit_add_term.setEnabled(False)
 
     def on_return_pressed_edit_add_term(self):
         term_title = self.edit_add_term.text().strip()
@@ -190,12 +173,10 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         fig, ax = plt.subplots(figsize=(9, 6))
         ax.set(xlim=(CURRENT_LP.x_start, CURRENT_LP.x_stop), ylim=(0, 1))
 
-        for i, data in enumerate(CURRENT_LP.terms):
-            _, x_axis_bottom, x_axis_top = data
-
-            ax.plot([x_axis_bottom[0], x_axis_top[0]], [0, 1], linewidth=5, color="red")
-            ax.plot([x_axis_top[0], x_axis_top[1]], [1, 1], linewidth=5, color="red")
-            ax.plot([x_axis_top[1], x_axis_bottom[1]], [1, 0], linewidth=5, color="red")
+        for term in CURRENT_LP.terms:
+            ax.plot([term.x_lb, term.x_lt], [0, 1], linewidth=5, color="red")
+            ax.plot([term.x_lt, term.x_rt], [1, 1], linewidth=5, color="red")
+            ax.plot([term.x_rt, term.x_rb], [1, 0], linewidth=5, color="red")
 
         ax.yaxis.set_visible(False)
         ax.grid(which="major", color="k", linestyle="--")

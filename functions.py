@@ -1,6 +1,3 @@
-import datetime
-import time
-
 from settings import *
 
 
@@ -24,6 +21,6 @@ def x_axis_iter(top: bool, start: int, stop: int, amount: int) -> Iterator[list[
 
 def unique_id(table_name: str) -> int:
     used_ids = {i[0] for i in CUR.execute(f"SELECT lp_id FROM {table_name}").fetchall()}
-    available_ids = set(range(0, max(used_ids) + 2))
+    available_ids = set(range(1, max(used_ids) + 2))
 
     return min(available_ids - used_ids)
