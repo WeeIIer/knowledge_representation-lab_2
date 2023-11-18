@@ -6,10 +6,9 @@ Term = namedtuple("Term", "title x_axis_bottom x_axis_top")
 
 class LP:
     def __init__(self, title: str, term_titles: list, x_start: int, x_stop: int):
-        self.title = title
-        self.x_start, self.x_stop = x_start, x_stop
-        self.terms = self.create_terms(term_titles) if term_titles else term_titles
+        self.title, self.x_start, self.x_stop = title, x_start, x_stop
         self.terms_amount = 0
+        self.terms = self.create_terms(term_titles) if term_titles else term_titles
 
     def create_terms(self, term_titles: list = None) -> list:
         if term_titles is None:
@@ -27,11 +26,11 @@ class LP:
     def term_titles(self) -> list[str]:
         return [title for title, _, _ in self.terms]
 
-    def set_term_x_axis_top(self, i: int, x_1: int, x_2: int):
-        self.terms[i].x_axis_top[0], self.terms[i].x_axis_top[1] = x_1, x_2
-
     def set_term_x_axis_bottom(self, i: int, x_1: int, x_2: int):
         self.terms[i].x_axis_bottom[0], self.terms[i].x_axis_bottom[1] = x_1, x_2
+
+    def set_term_x_axis_top(self, i: int, x_1: int, x_2: int):
+        self.terms[i].x_axis_top[0], self.terms[i].x_axis_top[1] = x_1, x_2
 
     def set_title(self, title: str):
         self.title = title
@@ -50,7 +49,10 @@ class LP:
         self.terms = self.create_terms(self.term_titles() + [title])
 
     def limits(self):
-        errors = [*repeat(True if self.terms_amount else False, 6)]
+        init_state = bool(self.terms_amount)
+        errors = [init_state] * 6
+        if not init_state:
+            return errors
 
         # Требование к упорядоченности термов
         for i in range(1, self.terms_amount):
@@ -60,12 +62,9 @@ class LP:
                 break
 
         # Требование к виду «крайних» функций принадлежности лингвистической переменной
-        for i in range(1, self.terms_amount):
-            first, last = self.terms[0], self.terms[-1]
-            if first.x_axis_bottom[0] != self.x_start or first.x_axis_top[0] != self.x_start \
-                    or last.x_axis_bottom[1] != self.x_stop or last.x_axis_top[1] != self.x_stop:
-                errors[1] = False
-                break
+        first, last = self.terms[0], self.terms[-1]
+        pairs = [first.x_axis_bottom[0], first.x_axis_top[0], last.x_axis_bottom[1], last.x_axis_top[1]]
+        errors[1] = pairs.count(self.x_start) + pairs.count(self.x_stop) == 4
 
         # Требование к полноте покрытия предметной области
         x_axis_set = set(chain.from_iterable(range(*x_axis_bottom) for _, x_axis_bottom, _ in self.terms))

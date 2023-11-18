@@ -1,7 +1,6 @@
 from settings import *
 from objects import LP
 
-
 CURRENT_LP: LP | None = None
 
 
@@ -16,7 +15,6 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
     def on_clicked_button_add_lp(self):
         global CURRENT_LP
         CURRENT_LP = None
-
         self.hide()
         function_editor_window.show()
 
@@ -39,8 +37,7 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.setupUi(self)
 
         self.slider_x_axis_top, self.slider_x_axis_bottom = self.__create_sliders()
-        for i in range(1, 7):
-            self.findChild(QCheckBox, f"check_err_{i}").setEnabled(False)
+        self.update_limits()
 
         self.splitter.restoreState(SETTINGS.value("splitterSizes"))
         self.splitter_3.restoreState(SETTINGS.value("splitterSizes"))
@@ -48,8 +45,8 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.button_save.clicked.connect(self.on_clicked_button_save)
         self.list_terms.itemClicked.connect(self.on_item_clicked_list_terms)
         self.list_terms.doubleClicked.connect(self.on_double_clicked_list_terms)
-        self.slider_x_axis_top.valueChanged.connect(self.on_value_changed_slider_x_axis_top)
         self.slider_x_axis_bottom.valueChanged.connect(self.on_value_changed_slider_x_axis_bottom)
+        self.slider_x_axis_top.valueChanged.connect(self.on_value_changed_slider_x_axis_top)
         self.edit_x_start.textChanged.connect(self.on_text_changed_edit_x)
         self.edit_x_stop.textChanged.connect(self.on_text_changed_edit_x)
         self.edit_term_title.textChanged.connect(self.on_text_changed_edit_x)
@@ -63,49 +60,21 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         if filename:
             with open(filename, "wb") as file:
                 pickle.dump(CURRENT_LP, file)
-            # self.__add_log(f"Лингвистическая переменная сохранена в \"{CURRENT_LP.title}.lp\".")
 
-    def on_return_pressed_edit_add_term(self):
-        term_title = self.edit_add_term.text().strip()
-        if term_title:
-            CURRENT_LP.add_term(self.edit_add_term.text())
-            self.add_terms_to_list()
-            self.change_sliders_range()
-            self.draw_plot()
-            # self.__add_log(f"Добавлен терм \"{term_title}\".")
+    def on_item_clicked_list_terms(self):
+        i = self.list_terms.currentRow()
+        x_axis_top = CURRENT_LP.terms[i].x_axis_top
+        x_axis_bottom = CURRENT_LP.terms[i].x_axis_bottom
 
-    def on_text_changed_edit_x(self):
-        global CURRENT_LP
-        title = self.edit_term_title.text()
-        x_start, x_stop = self.edit_x_start.text(), self.edit_x_stop.text()
-        self.button_save.setEnabled(False)
-
-        if title.strip() and x_start.isdigit() and x_stop.isdigit():
-            x_start, x_stop = int(x_start), int(x_stop)
-            if x_stop > x_start:
-                if CURRENT_LP is None:
-                    CURRENT_LP = LP(title, [], x_start, x_stop)
-                    self.add_terms_to_list()
-                    self.change_sliders_range()
-                    self.draw_plot()
-                else:
-                    self.list_terms.setCurrentRow(-1)
-                    CURRENT_LP.set_title(title)
-                    CURRENT_LP.set_x_start(x_start)
-                    CURRENT_LP.set_x_stop(x_stop)
-                    CURRENT_LP.update_terms()
-                    self.change_sliders_range()
-                    self.draw_plot()
+        self.slider_x_axis_top.setValue(x_axis_top)
+        self.slider_x_axis_bottom.setValue(x_axis_bottom)
 
     def on_double_clicked_list_terms(self):
         i = self.list_terms.currentRow()
-        # term_title = CURRENT_LP.term_titles()[i]
         CURRENT_LP.discard_term(i)
-        self.list_terms.takeItem(i)
-        self.list_terms.setCurrentRow(-1)
+        self.add_terms_to_list()
         self.change_sliders_range()
         self.draw_plot()
-        # self.__add_log(f"Удалён терм \"{term_title}\"")
 
     def on_value_changed_slider_x_axis_bottom(self):
         i = self.list_terms.currentRow()
@@ -123,14 +92,33 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
             self.groupBox_7.setTitle(f"Редактирование верхних координат терма {xs}")
             self.draw_plot()
 
-    def on_item_clicked_list_terms(self):
-        i = self.list_terms.currentRow()
+    def on_text_changed_edit_x(self):
+        global CURRENT_LP
+        title = self.edit_term_title.text()
+        x_start, x_stop = self.edit_x_start.text(), self.edit_x_stop.text()
 
-        x_axis_top = CURRENT_LP.terms[i].x_axis_top
-        x_axis_bottom = CURRENT_LP.terms[i].x_axis_bottom
+        if title.strip() and x_start.isdigit() and x_stop.isdigit():
+            x_start, x_stop = int(x_start), int(x_stop)
+            if x_stop > x_start:
+                if CURRENT_LP is None:
+                    CURRENT_LP = LP(title, [], x_start, x_stop)
+                    self.add_terms_to_list()
+                else:
+                    self.list_terms.setCurrentRow(-1)
+                    CURRENT_LP.set_title(title)
+                    CURRENT_LP.set_x_start(x_start)
+                    CURRENT_LP.set_x_stop(x_stop)
+                    CURRENT_LP.update_terms()
+                self.change_sliders_range()
+                self.draw_plot()
 
-        self.slider_x_axis_top.setValue(x_axis_top)
-        self.slider_x_axis_bottom.setValue(x_axis_bottom)
+    def on_return_pressed_edit_add_term(self):
+        term_title = self.edit_add_term.text().strip()
+        if term_title:
+            CURRENT_LP.add_term(self.edit_add_term.text())
+            self.add_terms_to_list()
+            self.change_sliders_range()
+            self.draw_plot()
 
     def add_terms_to_list(self):
         self.list_terms.clear()
@@ -150,14 +138,13 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.slider_x_axis_top.setValue([x_start, x_stop])
         self.groupBox_7.setTitle(f"Редактирование верхних координат терма ( ... )")
 
-    def draw_plot(self):
-        limits = CURRENT_LP.limits()
-
+    def update_limits(self):
+        limits = CURRENT_LP.limits() if CURRENT_LP is not None else [False] * 6
+        self.button_save.setEnabled(all(limits))
         for i, state in enumerate(limits, 1):
             self.findChild(QCheckBox, f"check_err_{i}").setChecked(state)
 
-        self.button_save.setEnabled(all(limits))
-
+    def draw_plot(self):
         plt.rc("font", size=8)
         plt.rcParams["font.family"] = "Calibri"
 
@@ -180,6 +167,26 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
 
         self.label_plot.clear()
         self.label_plot.setPixmap(QPixmap("fig.png"))
+        self.update_limits()
+
+    def show(self):
+        super(FunctionEditorWindow, self).show()
+
+        if CURRENT_LP is None:
+            self.edit_term_title.clear()
+            self.edit_x_start.clear()
+            self.edit_x_stop.clear()
+            self.list_terms.clear()
+            self.label_plot.clear()
+            self.update_limits()
+        else:
+            self.edit_term_title.setText(CURRENT_LP.title)
+            self.edit_x_start.setText(str(CURRENT_LP.x_start))
+            self.edit_x_stop.setText(str(CURRENT_LP.x_stop))
+            self.add_terms_to_list()
+
+        self.edit_add_term.clear()
+        self.change_sliders_range()
 
     def closeEvent(self, a0):
         super(FunctionEditorWindow, self).closeEvent(a0)
@@ -189,35 +196,7 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
 
         menu_window.show()
 
-    def show(self):
-        super(FunctionEditorWindow, self).show()
-        # self.label_log.clear()
-
-        if CURRENT_LP is None:
-            self.edit_term_title.clear()
-            self.edit_x_start.clear()
-            self.edit_x_stop.clear()
-            self.list_terms.clear()
-            self.label_plot.clear()
-            self.button_save.setEnabled(False)
-            for i in range(1, 7):
-                self.findChild(QCheckBox, f"check_err_{i}").setEnabled(False)
-            # self.__add_log("Создание новой лингвистической переменной.")
-        else:
-            self.edit_term_title.setText(CURRENT_LP.title)
-            self.edit_x_start.setText(str(CURRENT_LP.x_start))
-            self.edit_x_stop.setText(str(CURRENT_LP.x_stop))
-            self.add_terms_to_list()
-            # self.__add_log(f"Редактирование лингвистической переменной \"{CURRENT_LP.title}\".")
-
-        self.edit_add_term.clear()
-        self.change_sliders_range()
-
-    # def __add_log(self, message: str):
-    #     timing = datetime.datetime.now().strftime("%H:%M")
-    #     self.label_log.setText(f"Журнал: {timing} {message}")
-
-    def __create_sliders(self):
+    def __create_sliders(self) -> tuple[QRangeSlider, QRangeSlider]:
         for splitter, slider_name in ((self.splitter_3, "slider_x_axis_top"), (self.splitter, "slider_x_axis_bottom")):
             left_frame = QtWidgets.QFrame(splitter)
 

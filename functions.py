@@ -4,7 +4,7 @@ import time
 from settings import *
 
 
-def x_axis_iter(top: bool, start: int, stop: int, amount: int) -> Iterator:
+def x_axis_iter(top: bool, start: int, stop: int, amount: int) -> Iterator[list[int, int]]:
     step = int((stop - start) / (amount * 2))
     if top:  # top
         x_1, x_2 = start, start + step
