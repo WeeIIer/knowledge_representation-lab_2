@@ -1,27 +1,30 @@
 from settings import *
-from functions import x_axis_iter
+from functions import x_axis_iter, unique_id
+
 
 Term = namedtuple("Term", "title x_axis_bottom x_axis_top")
 
 
 class LP:
-    def __init__(self, title: str, term_titles: list, x_start: int, x_stop: int):
-        self.title, self.x_start, self.x_stop = title, x_start, x_stop
-        self.terms_amount = 0
-        self.terms = self.create_terms(term_titles) if term_titles else term_titles
+    def __init__(self):
+        self.id: int = 0
+        self.title: str = ""
+        self.x_start: int = 0
+        self.x_stop: int = 0
+        self.terms: list[Term] = []
 
-    def create_terms(self, term_titles: list = None) -> list:
+    def add_term(self, title: str):
+        self.update_terms(self.term_titles() + [title])
+
+    def update_terms(self, term_titles: list[str] | None = None):
         if term_titles is None:
             term_titles = self.term_titles()
 
-        self.terms_amount = len(term_titles)
-        bottom_x_axis = x_axis_iter(False, self.x_start, self.x_stop, self.terms_amount)
-        top_x_axis = x_axis_iter(True, self.x_start, self.x_stop, self.terms_amount)
+        term_count = len(term_titles)
+        x_axis_bottom = x_axis_iter(False, self.x_start, self.x_stop, term_count)
+        x_axis_top = x_axis_iter(True, self.x_start, self.x_stop, term_count)
 
-        return list(map(Term, term_titles, bottom_x_axis, top_x_axis))
-
-    def update_terms(self):
-        self.terms = self.create_terms()
+        self.terms = list(map(Term, term_titles, x_axis_bottom, x_axis_top))
 
     def term_titles(self) -> list[str]:
         return [title for title, _, _ in self.terms]
@@ -45,17 +48,15 @@ class LP:
         del self.terms[i]
         self.update_terms()
 
-    def add_term(self, title: str):
-        self.terms = self.create_terms(self.term_titles() + [title])
-
-    def limits(self):
-        init_state = bool(self.terms_amount)
+    def limits(self) -> list[bool]:
+        terms_count = len(self.term_titles())
+        init_state = bool(terms_count)
         errors = [init_state] * 6
         if not init_state:
             return errors
 
         # Требование к упорядоченности термов
-        for i in range(1, self.terms_amount):
+        for i in range(1, terms_count):
             prev, follow = self.terms[i - 1], self.terms[i]
             if prev.x_axis_bottom[0] > follow.x_axis_bottom[0] or prev.x_axis_top[0] > follow.x_axis_top[0]:
                 errors[0] = False
@@ -72,7 +73,7 @@ class LP:
             errors[2] = False
 
         # Требование к разграничению понятий, описанных функциями принадлежности термов лингвистической переменной
-        terms_range = range(self.terms_amount)
+        terms_range = range(terms_count)
         set_from = lambda index: set(range(self.terms[index].x_axis_top[0], self.terms[index].x_axis_top[1] + 1))
         x_axis_set = chain.from_iterable(set_from(i) & set_from(j) for j in terms_range for i in terms_range if i != j)
         if set(x_axis_set):
@@ -85,3 +86,53 @@ class LP:
         # !!! Всегда истина, так как в программе есть чёткие ограничения начала и конца !!!
 
         return errors
+
+    def save(self):
+        new = not bool(self.id)
+        if new:
+            self.id = unique_id("LPs")
+
+        fields = [
+            ("lp_id", "lp_title", "x_start", "x_stop"),
+            ("lp_id", "term_id", "term_title", "x_axis_bottom_1", "x_axis_bottom_2", "x_axis_top_1", "x_axis_top_2")
+        ]
+
+        data = {
+            "LPs": [(self.id, self.title, self.x_start, self.x_stop)],
+            "terms": []
+        }
+
+        for term_id, term in enumerate(self.terms):
+            data["terms"].append((self.id, term_id, term.title, *term.x_axis_bottom, *term.x_axis_top))
+
+        for row in data["LPs"]:
+            if new:
+                sql = f"INSERT INTO LPs VALUES ({', '.join(repeat('?', len(row)))})"
+                CUR.execute(sql, row)
+            else:
+                table_fields = (f"{field} = ?" for field in fields[0])
+                sql = f"UPDATE LPs SET {', '.join(table_fields)} WHERE lp_id = ?"
+                CUR.execute(sql, (*row, self.id))
+            CON.commit()
+
+        for term_id, row in enumerate(data["terms"]):
+            if not new:
+                sql = f"DELETE FROM terms WHERE lp_id = ? AND term_id = ?"
+                CUR.execute(sql, (self.id, term_id))
+                CON.commit()
+            sql = f"INSERT INTO terms VALUES ({', '.join(repeat('?', len(row)))})"
+            CUR.execute(sql, row)
+            CON.commit()
+
+    def load(self, lp_id: int | None = None):
+        if lp_id is None:
+            self.id = None
+        else:
+            data = {"LPs": None, "terms": None}
+
+            for table_name in data:
+                sql = f"SELECT * FROM {table_name} WHERE lp_id = ?"
+                data[table_name] = CUR.execute(sql, (lp_id,)).fetchall()
+
+            self.id, self.title, self.x_start, self.x_stop = data["LPs"].pop()
+            self.terms = [Term(term[2], [*term[3:5]], [*term[5:7]]) for term in data["terms"]]

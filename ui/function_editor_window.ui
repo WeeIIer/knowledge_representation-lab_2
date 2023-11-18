@@ -62,7 +62,7 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>300</width>
+         <width>400</width>
          <height>0</height>
         </size>
        </property>
@@ -232,7 +232,7 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>300</width>
+         <width>400</width>
          <height>0</height>
         </size>
        </property>
@@ -310,14 +310,14 @@
      <item>
       <widget class="QGroupBox" name="groupBox_3">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>300</width>
+         <width>400</width>
          <height>0</height>
         </size>
        </property>

@@ -20,3 +20,10 @@ def x_axis_iter(top: bool, start: int, stop: int, amount: int) -> Iterator[list[
             break
         yield [x_1, x_2]
     yield [x_1, stop]
+
+
+def unique_id(table_name: str) -> int:
+    used_ids = {i[0] for i in CUR.execute(f"SELECT lp_id FROM {table_name}").fetchall()}
+    available_ids = set(range(0, max(used_ids) + 2))
+
+    return min(available_ids - used_ids)

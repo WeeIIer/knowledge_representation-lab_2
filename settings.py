@@ -4,6 +4,7 @@ import matplotlib
 import os
 import sys
 import pickle
+import sqlite3
 from collections import namedtuple
 from itertools import chain, repeat
 from typing import Iterator, Iterable
@@ -15,6 +16,7 @@ from superqt import QRangeSlider
 
 import function_editor_window as function_editor_window_form
 import menu_window as menu_window_form
+import lp_selection_window as lp_selection_window_form
 
 """
 pip install pyinstaller
@@ -23,6 +25,8 @@ pyinstaller --onefile --icon=icon.ico --noconsole --name "Sensors" --clean main.
 pyrcc5 -o resources.py resources.qrc
 """
 
+CON = sqlite3.connect("dictionary.db")
+CUR = CON.cursor()
 SETTINGS = QtCore.QSettings("settings.ini", QtCore.QSettings.IniFormat)
 BUILDING = True  # Флаг, отвечающий за отладочные функции
 DIRNAME, _ = os.path.split(os.path.realpath(__file__))  # Путь к папке с исполняемым файлом

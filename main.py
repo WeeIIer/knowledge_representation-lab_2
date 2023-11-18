@@ -1,7 +1,40 @@
+import functions
 from settings import *
 from objects import LP
 
 CURRENT_LP: LP | None = None
+
+
+class LPSelectionWindow(QWidget, lp_selection_window_form.Ui_lp_selection_window):
+    def __init__(self):
+        super(LPSelectionWindow, self).__init__()
+        self.setupUi(self)
+
+        self.LPs = None
+
+        self.button_open.clicked.connect(self.on_clicked_button_open)
+        self.button_cancel.clicked.connect(self.close)
+        self.list_lps.doubleClicked.connect(self.on_clicked_button_open)
+
+    def on_clicked_button_open(self):
+        global CURRENT_LP
+        i = self.list_lps.currentRow()
+        if i > -1:
+            lp_id = self.LPs[i][0]
+            CURRENT_LP = LP()
+            CURRENT_LP.load(lp_id)
+            self.hide()
+            function_editor_window.show()
+
+    def show(self):
+        super(LPSelectionWindow, self).show()
+        self.LPs = sorted(CUR.execute("SELECT lp_id, lp_title FROM LPs").fetchall(), key=lambda lp: lp[-1].lower())
+        self.list_lps.clear()
+        self.list_lps.addItems(title for _, title in self.LPs)
+
+    def closeEvent(self, a0):
+        super(LPSelectionWindow, self).closeEvent(a0)
+        menu_window.show()
 
 
 class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
@@ -19,16 +52,18 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
         function_editor_window.show()
 
     def on_clicked_button_load_lp(self):
-        global CURRENT_LP
-        filename, _ = QFileDialog.getOpenFileName(self,
-                                                  "Открыть лингвистическую переменную",
-                                                  ".",
-                                                  "Лингвистическая переменная (*.lp)")
-        if filename:
-            with open(filename, "rb") as file:
-                CURRENT_LP = pickle.load(file)
-            self.hide()
-            function_editor_window.show()
+        # global CURRENT_LP
+        # filename, _ = QFileDialog.getOpenFileName(self,
+        #                                           "Открыть лингвистическую переменную",
+        #                                           ".",
+        #                                           "Лингвистическая переменная (*.lp)")
+        # if filename:
+        #     with open(filename, "rb") as file:
+        #         CURRENT_LP = pickle.load(file)
+        #     self.hide()
+        functions.unique_id("LPs")
+        self.hide()
+        lp_selection_window.show()
 
 
 class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_editor_window):
@@ -54,13 +89,15 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.edit_add_term.returnPressed.connect(self.on_return_pressed_edit_add_term)
 
     def on_clicked_button_save(self):
-        filename, _ = QFileDialog.getSaveFileName(self,
-                                                  "Сохранить лингвистическую переменную",
-                                                  fr".\{CURRENT_LP.title}.lp",
-                                                  "Лингвистическая переменная (*.lp)")
-        if filename:
-            with open(filename, "wb") as file:
-                pickle.dump(CURRENT_LP, file)
+        CURRENT_LP.save()
+        # filename, _ = QFileDialog.getSaveFileName(self,
+        #                                           "Сохранить лингвистическую переменную",
+        #                                           fr".\{CURRENT_LP.title}.lp",
+        #                                           "Лингвистическая переменная (*.lp)")
+        # if filename:
+        #     with open(filename, "wb") as file:
+        #         pickle.dump(CURRENT_LP, file)
+
 
     def on_item_clicked_list_terms(self):
         i = self.list_terms.currentRow()
@@ -101,13 +138,13 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
             x_start, x_stop = int(x_start), int(x_stop)
             if title.strip() and x_start < x_stop:
                 if CURRENT_LP is None:
-                    CURRENT_LP = LP(title, [], x_start, x_stop)
-                    self.add_terms_to_list()
-                else:
-                    self.list_terms.setCurrentRow(-1)
-                    CURRENT_LP.set_title(title)
-                    CURRENT_LP.set_x_start(x_start)
-                    CURRENT_LP.set_x_stop(x_stop)
+                    CURRENT_LP = LP()
+                    CURRENT_LP.load()
+                CURRENT_LP.set_title(title)
+                CURRENT_LP.set_x_start(x_start)
+                CURRENT_LP.set_x_stop(x_stop)
+                #CURRENT_LP.update_terms()
+                self.add_terms_to_list()
                 self.change_sliders_range()
                 self.draw_plot()
         except ValueError:
@@ -115,8 +152,9 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
 
     def on_return_pressed_edit_add_term(self):
         term_title = self.edit_add_term.text().strip()
+        self.edit_add_term.clear()
         if term_title:
-            CURRENT_LP.add_term(self.edit_add_term.text())
+            CURRENT_LP.add_term(term_title)
             self.add_terms_to_list()
             self.change_sliders_range()
             self.draw_plot()
@@ -218,6 +256,7 @@ app.setPalette(palette())
 
 menu_window = MenuWindow()
 function_editor_window = FunctionEditorWindow()
+lp_selection_window = LPSelectionWindow()
 
 menu_window.show()
 app.exec_()
