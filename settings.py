@@ -5,7 +5,7 @@ import os
 import sys
 import pickle
 from collections import namedtuple
-from itertools import chain
+from itertools import chain, repeat
 from typing import Iterator, Iterable
 
 from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem, QFileDialog, QCheckBox

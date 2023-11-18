@@ -104,7 +104,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="edit_term_title">
+           <widget class="QLineEdit" name="edit_title">
             <property name="minimumSize">
              <size>
               <width>0</width>

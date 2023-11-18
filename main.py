@@ -37,7 +37,8 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.setupUi(self)
 
         self.slider_x_axis_top, self.slider_x_axis_bottom = self.__create_sliders()
-        self.update_limits()
+        for i, state in enumerate(repeat(False, 6), 1):
+            self.findChild(QCheckBox, f"check_err_{i}").setEnabled(state)
 
         self.splitter.restoreState(SETTINGS.value("splitterSizes"))
         self.splitter_3.restoreState(SETTINGS.value("splitterSizes"))
@@ -47,9 +48,9 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.list_terms.doubleClicked.connect(self.on_double_clicked_list_terms)
         self.slider_x_axis_bottom.valueChanged.connect(self.on_value_changed_slider_x_axis_bottom)
         self.slider_x_axis_top.valueChanged.connect(self.on_value_changed_slider_x_axis_top)
-        self.edit_x_start.textChanged.connect(self.on_text_changed_edit_x)
-        self.edit_x_stop.textChanged.connect(self.on_text_changed_edit_x)
-        self.edit_term_title.textChanged.connect(self.on_text_changed_edit_x)
+        self.edit_title.textChanged.connect(self.on_text_changed_edit_lp)
+        self.edit_x_start.textChanged.connect(self.on_text_changed_edit_lp)
+        self.edit_x_stop.textChanged.connect(self.on_text_changed_edit_lp)
         self.edit_add_term.returnPressed.connect(self.on_return_pressed_edit_add_term)
 
     def on_clicked_button_save(self):
@@ -92,14 +93,13 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
             self.groupBox_7.setTitle(f"Редактирование верхних координат терма {xs}")
             self.draw_plot()
 
-    def on_text_changed_edit_x(self):
+    def on_text_changed_edit_lp(self):
         global CURRENT_LP
-        title = self.edit_term_title.text()
+        title = self.edit_title.text()
         x_start, x_stop = self.edit_x_start.text(), self.edit_x_stop.text()
-
-        if title.strip() and x_start.isdigit() and x_stop.isdigit():
+        try:
             x_start, x_stop = int(x_start), int(x_stop)
-            if x_stop > x_start:
+            if title.strip() and x_start < x_stop:
                 if CURRENT_LP is None:
                     CURRENT_LP = LP(title, [], x_start, x_stop)
                     self.add_terms_to_list()
@@ -108,9 +108,10 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
                     CURRENT_LP.set_title(title)
                     CURRENT_LP.set_x_start(x_start)
                     CURRENT_LP.set_x_stop(x_stop)
-                    CURRENT_LP.update_terms()
                 self.change_sliders_range()
                 self.draw_plot()
+        except ValueError:
+            pass
 
     def on_return_pressed_edit_add_term(self):
         term_title = self.edit_add_term.text().strip()
@@ -172,15 +173,15 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
     def show(self):
         super(FunctionEditorWindow, self).show()
 
-        if CURRENT_LP is None:
-            self.edit_term_title.clear()
-            self.edit_x_start.clear()
-            self.edit_x_stop.clear()
-            self.list_terms.clear()
-            self.label_plot.clear()
-            self.update_limits()
-        else:
-            self.edit_term_title.setText(CURRENT_LP.title)
+        self.edit_title.clear()
+        self.edit_x_start.clear()
+        self.edit_x_stop.clear()
+        self.list_terms.clear()
+        self.label_plot.clear()
+        self.update_limits()
+
+        if CURRENT_LP is not None:
+            self.edit_title.setText(CURRENT_LP.title)
             self.edit_x_start.setText(str(CURRENT_LP.x_start))
             self.edit_x_stop.setText(str(CURRENT_LP.x_stop))
             self.add_terms_to_list()
