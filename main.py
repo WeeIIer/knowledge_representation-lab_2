@@ -1,6 +1,8 @@
-import functions
 from settings import *
-from objects import LP
+from objects import LP, Dictionary, Attribute
+
+DICTIONARY = Dictionary()
+DICTIONARY.load_LPs()
 
 CURRENT_LP: LP | None = None
 
@@ -43,7 +45,6 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
         self.setupUi(self)
 
         self.current_tab = 0
-        self.LPs = None
 
         self.button_open.clicked.connect(self.on_clicked_button_open)
         self.button_delete.clicked.connect(self.on_clicked_button_delete)
@@ -54,24 +55,19 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
         global CURRENT_LP
         i = self.list_lp.currentRow()
         if i > -1:
-            lp_id = self.LPs[i][0]
-            CURRENT_LP = LP()
-            CURRENT_LP.load(lp_id)
+            CURRENT_LP = DICTIONARY.LP(i)
             self.close()
             lp_editor_window.show()
 
     def on_clicked_button_delete(self):
         i = self.list_lp.currentRow()
         if i > -1:
-            lp_id = self.LPs[i][0]
-            CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (lp_id,))
-            CON.commit()
+            DICTIONARY.del_LP(i)
             self.update_list_lp()
 
     def update_list_lp(self):
-        self.LPs = sorted(CUR.execute("SELECT lp_id, lp_title FROM LPs").fetchall(), key=lambda lp: lp[-1].lower())
         self.list_lp.clear()
-        self.list_lp.addItems(title for _, title in self.LPs)
+        self.list_lp.addItems(DICTIONARY.LP_titles())
         self.button_exit.setFocus()
 
     def show(self, current_tab: int = 0):
@@ -100,6 +96,8 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         self.splitter_3.restoreState(SETTINGS.value("splitterSizes"))
 
         self.button_save.clicked.connect(self.on_clicked_button_save)
+        self.button_exit.clicked.connect(self.close)
+
         self.list_terms.itemClicked.connect(self.on_item_clicked_list_terms)
         self.list_terms.doubleClicked.connect(self.on_double_clicked_list_terms)
         self.slider_x_axis_bottom.valueChanged.connect(self.on_value_changed_slider_x_axis_bottom)
@@ -111,6 +109,7 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
 
     def on_clicked_button_save(self):
         CURRENT_LP.save()
+        DICTIONARY.load_LPs()
 
     def on_item_clicked_list_terms(self):
         i = self.list_terms.currentRow()
@@ -222,6 +221,7 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
 
     def show(self):
         super(LPEditorWindow, self).show()
+        self.showMaximized()
 
         self.edit_title.clear()
         self.edit_x_start.clear()
@@ -266,12 +266,33 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         super(PPEditorWindow, self).__init__()
         self.setupUi(self)
 
+        self.attributes: list[Attribute] = []
+        self.output_attribute: Attribute | None = None
+
+
+        self.button_add_attribute.clicked.connect(self.on_clicked_button_add_attribute)
+        self.button_exit.clicked.connect(self.close)
+
+    def on_clicked_button_add_attribute(self):
+        attribute = Attribute(DICTIONARY)
+        self.attributes.append(attribute)
+        self.layout_scroll_attribute.addWidget(attribute.widget)
+
     def show(self):
         super(PPEditorWindow, self).show()
+        self.showMaximized()
+
+        self.output_attribute = Attribute(DICTIONARY, False)
+        self.layout_output_attribute.addWidget(self.output_attribute.widget)
 
     def closeEvent(self, a0):
         super(PPEditorWindow, self).closeEvent(a0)
 
+        while self.attributes:
+            attribute = self.attributes.pop()
+            attribute.widget.deleteLater() if attribute.widget is not None else ...
+
+        self.output_attribute.widget.deleteLater()
         menu_window.show()
 
 

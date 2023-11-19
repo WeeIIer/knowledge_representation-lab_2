@@ -8,7 +8,7 @@ from itertools import chain, repeat
 from typing import Iterator, Iterable
 
 from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem, QFileDialog, QCheckBox
-from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor
+from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor, QFont
 from PyQt5 import QtCore, Qt, QtWidgets
 from superqt import QRangeSlider
 
@@ -24,6 +24,9 @@ pyinstaller --onefile --icon=icon.ico --noconsole --name "Sensors" --clean main.
 --onedir или --onefile (в одну папку или в один файл)
 pyrcc5 -o resources.py resources.qrc
 """
+
+OPERATIONS = ("И", "ИЛИ")
+CONNECTIONS = ("=", ">", "<")
 
 CON = sqlite3.connect("dictionary.db")
 CUR = CON.cursor()

@@ -141,3 +141,116 @@ class LP:
 
             self.id, self.title, self.x_start, self.x_stop = data["LPs"].pop()
             self.terms = [Term(*term[2:]) for term in data["terms"]]
+
+
+class Dictionary:
+    def __init__(self):
+        self.LPs = []
+        self.PPs = []
+
+    def LP_titles(self):
+        return (lp.title for lp in self.LPs)
+
+    def LP(self, i: int) -> LP:
+        return self.LPs[i]
+
+    def del_LP(self, i: int):
+        CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (self.LP(i).id,))
+        CON.commit()
+        self.load_LPs()
+
+    def load_LPs(self):
+        self.LPs.clear()
+        for _, lp_id in sorted(CUR.execute("SELECT lp_title, lp_id FROM LPs").fetchall()):
+            lp = LP()
+            lp.load(lp_id)
+            self.LPs.append(lp)
+
+
+class Attribute:
+    def __init__(self, dictionary: Dictionary, not_output=True):
+        self.__dictionary = dictionary
+        self.widget = self.__create_widget(not_output)
+
+        self.LP = None
+        self.term_id = None
+
+    def __create_widget(self, not_output: bool):
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        cursor = QCursor(QtCore.Qt.PointingHandCursor)
+
+        container = QtWidgets.QGroupBox()
+        container.setTitle("")
+
+        container_layout = QtWidgets.QHBoxLayout(container)
+        container_layout.setContentsMargins(10, 10, 10, 10)
+        container_layout.setSpacing(10)
+
+        combo_operation = QtWidgets.QComboBox(container)
+        combo_operation.setMinimumSize(QtCore.QSize(0, 40))
+        combo_operation.setCursor(cursor)
+        combo_operation.addItems(OPERATIONS)
+        container_layout.addWidget(combo_operation)
+
+        combo_lp = QtWidgets.QComboBox(container)
+        combo_lp.setMinimumSize(QtCore.QSize(0, 40))
+        combo_lp.setCursor(cursor)
+        combo_lp.addItems(self.__dictionary.LP_titles())
+        combo_lp.setCurrentIndex(-1)
+        container_layout.addWidget(combo_lp)
+
+        combo_connection = QtWidgets.QComboBox(container)
+        combo_connection.setMinimumSize(QtCore.QSize(0, 40))
+        combo_connection.setCursor(cursor)
+        combo_connection.addItems(CONNECTIONS)
+        container_layout.addWidget(combo_connection)
+
+        combo_term = QtWidgets.QComboBox(container)
+        combo_term.setMinimumSize(QtCore.QSize(0, 40))
+        combo_term.setCursor(cursor)
+        container_layout.addWidget(combo_term)
+
+        if not_output:
+            button_delete = QtWidgets.QPushButton(container)
+            size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+            button_delete.setSizePolicy(size_policy)
+            button_delete.setMinimumSize(QtCore.QSize(80, 40))
+            font = QFont()
+            font.setBold(True)
+            font.setWeight(75)
+            button_delete.setFont(font)
+            button_delete.setCursor(cursor)
+            button_delete.setText("Удалить")
+            button_delete.clicked.connect(self.__button_delete)
+            container_layout.addWidget(button_delete)
+
+        main_layout.addWidget(container)
+        widget = QWidget()
+        widget.setLayout(main_layout)
+
+        combo_lp.currentIndexChanged.connect(lambda: self.__combo_lp(combo_lp, combo_term))
+        combo_term.currentIndexChanged.connect(lambda: self.__combo_term(combo_term))
+
+        return widget
+
+    def __combo_lp(self, combo_lp: QtWidgets.QComboBox, combo_term: QtWidgets.QComboBox):
+        combo_term.clear()
+        i = combo_lp.currentIndex()
+        if i > -1:
+            self.LP = self.__dictionary.LP(i)
+            combo_term.addItems(self.__dictionary.LP(i).term_titles())
+        else:
+            self.LP = None
+
+    def __combo_term(self, combo_term: QtWidgets.QComboBox):
+        i = combo_term.currentIndex()
+        if i > -1:
+            self.term_id = i
+        else:
+            self.term_id = None
+
+    def __button_delete(self):
+        self.widget.deleteLater()
+        self.widget = None
+        self.LP = None
