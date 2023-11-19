@@ -200,7 +200,7 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         plt.rc("font", size=8)
         plt.rcParams["font.family"] = "Calibri"
 
-        fig, ax = plt.subplots(figsize=(9, 6))
+        fig, ax = plt.subplots(figsize=(12, 6))
         ax.set(xlim=(CURRENT_LP.x_start, CURRENT_LP.x_stop), ylim=(0, 1))
 
         for term in CURRENT_LP.terms:
