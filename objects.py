@@ -106,15 +106,12 @@ class LP:
         if new:
             self.id = unique_id("LPs")
 
-        data = {
-            "LPs": [(self.id, self.title, self.x_start, self.x_stop)],
-            "terms": []
-        }
+        data = {"LPs": [(self.id, self.title, self.x_start, self.x_stop)], "terms": []}  # Данные для сохранения в БД
 
-        for term_id, term in enumerate(self.terms):
+        for term_id, term in enumerate(self.terms):  # Сформировать пакеты данных с термами
             data["terms"].append((self.id, term_id, *term.data()))
 
-        for row in data["LPs"]:
+        for row in data["LPs"]:  # Добавить основную информацию о ЛП в БД
             if new:
                 sql = f"INSERT INTO LPs VALUES ({', '.join(repeat('?', len(row)))})"
                 CUR.execute(sql, row)
@@ -124,11 +121,10 @@ class LP:
                 CUR.execute(sql, (*row, self.id))
             CON.commit()
 
-        for term_id, row in enumerate(data["terms"]):
-            if not new:
-                sql = f"DELETE FROM terms WHERE lp_id = ? AND term_id = ?"
-                CUR.execute(sql, (self.id, term_id))
-                CON.commit()
+        if not new:  # Удалить термы из БД, если ЛП существует
+            CUR.execute("DELETE FROM terms WHERE lp_id = ?", (self.id,))
+            CON.commit()
+        for term_id, row in enumerate(data["terms"]):  # Добавить термы ЛП в БД
             sql = f"INSERT INTO terms VALUES ({', '.join(repeat('?', len(row)))})"
             CUR.execute(sql, row)
             CON.commit()
