@@ -5,6 +5,38 @@ from objects import LP
 CURRENT_LP: LP | None = None
 
 
+class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
+    def __init__(self):
+        super(MenuWindow, self).__init__()
+        self.setupUi(self)
+
+        self.button_add_lp.clicked.connect(self.on_clicked_button_add_lp)
+        self.button_dict_lp.clicked.connect(self.on_clicked_button_dict_lp)
+
+        self.button_add_pp.clicked.connect(self.on_clicked_button_add_pp)
+        self.button_dict_pp.clicked.connect(self.on_clicked_button_dict_pp)
+
+        self.button_exit.clicked.connect(app.closeAllWindows)
+
+    def on_clicked_button_add_lp(self):
+        global CURRENT_LP
+        CURRENT_LP = None
+        self.hide()
+        lp_editor_window.show()
+
+    def on_clicked_button_dict_lp(self):
+        self.hide()
+        dictionary_window.show(0)
+
+    def on_clicked_button_add_pp(self):
+        self.hide()
+        pp_editor_window.show()
+
+    def on_clicked_button_dict_pp(self):
+        self.hide()
+        dictionary_window.show(1)
+
+
 class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
     def __init__(self):
         super(DictionaryWindow, self).__init__()
@@ -26,7 +58,7 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
             CURRENT_LP = LP()
             CURRENT_LP.load(lp_id)
             self.close()
-            function_editor_window.show()
+            lp_editor_window.show()
 
     def on_clicked_button_delete(self):
         i = self.list_lp.currentRow()
@@ -55,36 +87,9 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
         menu_window.show()
 
 
-class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
+class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
     def __init__(self):
-        super(MenuWindow, self).__init__()
-        self.setupUi(self)
-
-        self.button_add_lp.clicked.connect(self.on_clicked_button_add_lp)
-        self.button_dict_lp.clicked.connect(self.on_clicked_button_dict_lp)
-
-        self.button_dict_pp.clicked.connect(self.on_clicked_button_dict_pp)
-        
-        self.button_exit.clicked.connect(app.closeAllWindows)
-
-    def on_clicked_button_add_lp(self):
-        global CURRENT_LP
-        CURRENT_LP = None
-        self.hide()
-        function_editor_window.show()
-
-    def on_clicked_button_dict_lp(self):
-        self.hide()
-        dictionary_window.show(0)
-
-    def on_clicked_button_dict_pp(self):
-        self.hide()
-        dictionary_window.show(1)
-
-
-class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_editor_window):
-    def __init__(self):
-        super(FunctionEditorWindow, self).__init__()
+        super(LPEditorWindow, self).__init__()
         self.setupUi(self)
 
         self.slider_x_axis_top, self.slider_x_axis_bottom = self.__create_sliders()
@@ -216,7 +221,7 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.update_limits()
 
     def show(self):
-        super(FunctionEditorWindow, self).show()
+        super(LPEditorWindow, self).show()
 
         self.edit_title.clear()
         self.edit_x_start.clear()
@@ -235,7 +240,7 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         self.change_sliders_range()
 
     def closeEvent(self, a0):
-        super(FunctionEditorWindow, self).closeEvent(a0)
+        super(LPEditorWindow, self).closeEvent(a0)
 
         SETTINGS.setValue("splitterSizes", self.splitter.saveState())
         SETTINGS.setValue("splitterSizes", self.splitter_3.saveState())
@@ -256,14 +261,29 @@ class FunctionEditorWindow(QWidget, function_editor_window_form.Ui_function_edit
         return self.findChild(QRangeSlider, "slider_x_axis_top"), self.findChild(QRangeSlider, "slider_x_axis_bottom")
 
 
+class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
+    def __init__(self):
+        super(PPEditorWindow, self).__init__()
+        self.setupUi(self)
+
+    def show(self):
+        super(PPEditorWindow, self).show()
+
+    def closeEvent(self, a0):
+        super(PPEditorWindow, self).closeEvent(a0)
+
+        menu_window.show()
+
+
 app = QApplication(sys.argv)
 app.setStyle("fusion")
 app.setPalette(palette())
 #app.setWindowIcon(QIcon(":/logos/icons/program.png"))
 
 menu_window = MenuWindow()
-function_editor_window = FunctionEditorWindow()
 dictionary_window = DictionaryWindow()
+lp_editor_window = LPEditorWindow()
+pp_editor_window = PPEditorWindow()
 
 menu_window.show()
 app.exec_()

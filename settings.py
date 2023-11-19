@@ -12,9 +12,11 @@ from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor
 from PyQt5 import QtCore, Qt, QtWidgets
 from superqt import QRangeSlider
 
-import function_editor_window as function_editor_window_form
 import menu_window as menu_window_form
 import dictionary_window as dictionary_window_form
+import lp_editor_window as lp_editor_window_form
+import pp_editor_window as pp_editor_window_form
+
 
 """
 pip install pyinstaller

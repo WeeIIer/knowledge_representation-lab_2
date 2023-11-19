@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\VADIM\Python\SFedU\third_term\knowledge_representation\lab_2\ui\function_editor_window.ui'
+# Form implementation generated from reading ui file 'D:\VADIM\Python\SFedU\third_term\knowledge_representation\lab_2\ui\lp_editor_window.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.10
 #
@@ -11,28 +11,28 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_function_editor_window(object):
-    def setupUi(self, function_editor_window):
-        function_editor_window.setObjectName("function_editor_window")
-        function_editor_window.resize(1050, 683)
+class Ui_lp_editor_window(object):
+    def setupUi(self, lp_editor_window):
+        lp_editor_window.setObjectName("lp_editor_window")
+        lp_editor_window.resize(1050, 683)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(function_editor_window.sizePolicy().hasHeightForWidth())
-        function_editor_window.setSizePolicy(sizePolicy)
-        function_editor_window.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        sizePolicy.setHeightForWidth(lp_editor_window.sizePolicy().hasHeightForWidth())
+        lp_editor_window.setSizePolicy(sizePolicy)
+        lp_editor_window.setMaximumSize(QtCore.QSize(16777215, 16777215))
         font = QtGui.QFont()
         font.setFamily("Calibri")
         font.setPointSize(10)
-        function_editor_window.setFont(font)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(function_editor_window)
+        lp_editor_window.setFont(font)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(lp_editor_window)
         self.horizontalLayout_2.setContentsMargins(10, 10, 10, 10)
         self.horizontalLayout_2.setSpacing(10)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setSpacing(10)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.groupBox = QtWidgets.QGroupBox(function_editor_window)
+        self.groupBox = QtWidgets.QGroupBox(lp_editor_window)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -100,7 +100,7 @@ class Ui_function_editor_window(object):
         self.button_save.setObjectName("button_save")
         self.verticalLayout.addWidget(self.button_save)
         self.verticalLayout_5.addWidget(self.groupBox)
-        self.groupBox_6 = QtWidgets.QGroupBox(function_editor_window)
+        self.groupBox_6 = QtWidgets.QGroupBox(lp_editor_window)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -132,7 +132,7 @@ class Ui_function_editor_window(object):
         self.list_terms.setObjectName("list_terms")
         self.verticalLayout_2.addWidget(self.list_terms)
         self.verticalLayout_5.addWidget(self.groupBox_6)
-        self.groupBox_3 = QtWidgets.QGroupBox(function_editor_window)
+        self.groupBox_3 = QtWidgets.QGroupBox(lp_editor_window)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -244,7 +244,7 @@ class Ui_function_editor_window(object):
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setSpacing(10)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.groupBox_7 = QtWidgets.QGroupBox(function_editor_window)
+        self.groupBox_7 = QtWidgets.QGroupBox(lp_editor_window)
         self.groupBox_7.setObjectName("groupBox_7")
         self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.groupBox_7)
         self.verticalLayout_8.setContentsMargins(10, 10, 10, 10)
@@ -256,7 +256,7 @@ class Ui_function_editor_window(object):
         self.splitter_3.setObjectName("splitter_3")
         self.verticalLayout_8.addWidget(self.splitter_3)
         self.verticalLayout_4.addWidget(self.groupBox_7)
-        self.groupBox_2 = QtWidgets.QGroupBox(function_editor_window)
+        self.groupBox_2 = QtWidgets.QGroupBox(lp_editor_window)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -281,7 +281,7 @@ class Ui_function_editor_window(object):
         self.label_plot.setObjectName("label_plot")
         self.horizontalLayout_4.addWidget(self.label_plot)
         self.verticalLayout_4.addWidget(self.groupBox_2)
-        self.groupBox_5 = QtWidgets.QGroupBox(function_editor_window)
+        self.groupBox_5 = QtWidgets.QGroupBox(lp_editor_window)
         self.groupBox_5.setObjectName("groupBox_5")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.groupBox_5)
         self.verticalLayout_3.setContentsMargins(10, 10, 10, 10)
@@ -295,36 +295,36 @@ class Ui_function_editor_window(object):
         self.verticalLayout_4.addWidget(self.groupBox_5)
         self.horizontalLayout_2.addLayout(self.verticalLayout_4)
 
-        self.retranslateUi(function_editor_window)
-        QtCore.QMetaObject.connectSlotsByName(function_editor_window)
+        self.retranslateUi(lp_editor_window)
+        QtCore.QMetaObject.connectSlotsByName(lp_editor_window)
 
-    def retranslateUi(self, function_editor_window):
+    def retranslateUi(self, lp_editor_window):
         _translate = QtCore.QCoreApplication.translate
-        function_editor_window.setWindowTitle(_translate("function_editor_window", "Редактор функций принадлежности лингвистической переменной"))
-        self.groupBox.setTitle(_translate("function_editor_window", "Лингвистическая переменная"))
-        self.label_15.setText(_translate("function_editor_window", "Название"))
-        self.label_13.setText(_translate("function_editor_window", "Минимум (ось X)"))
-        self.label_14.setText(_translate("function_editor_window", "Максимум (ось X)"))
-        self.button_save.setText(_translate("function_editor_window", "Сохранить"))
-        self.groupBox_6.setTitle(_translate("function_editor_window", "Термы"))
-        self.label_12.setText(_translate("function_editor_window", "Новый терм"))
-        self.groupBox_3.setTitle(_translate("function_editor_window", "Требования к виду функций принадлежности"))
-        self.label.setText(_translate("function_editor_window", "Требование к упорядоченности термов"))
-        self.label_2.setText(_translate("function_editor_window", "Требование к виду «крайних» функций принадлежности лингвистической переменной"))
-        self.label_3.setText(_translate("function_editor_window", "Требование к полноте покрытия предметной области"))
-        self.label_4.setText(_translate("function_editor_window", "Требование к разграничению понятий, описанных функциями принадлежности термов лингвистической переменной"))
-        self.label_5.setText(_translate("function_editor_window", "Требование к наличию типового элемента"))
-        self.label_6.setText(_translate("function_editor_window", "Требование к ограничению предметной шкалы"))
-        self.groupBox_7.setTitle(_translate("function_editor_window", "Редактирование верхних координат терма"))
-        self.groupBox_2.setTitle(_translate("function_editor_window", "График функций принадлежности"))
-        self.groupBox_5.setTitle(_translate("function_editor_window", "Редактирование нижных координат терма"))
+        lp_editor_window.setWindowTitle(_translate("lp_editor_window", "Редактор лингвистической переменной"))
+        self.groupBox.setTitle(_translate("lp_editor_window", "Лингвистическая переменная"))
+        self.label_15.setText(_translate("lp_editor_window", "Название"))
+        self.label_13.setText(_translate("lp_editor_window", "Минимум (ось X)"))
+        self.label_14.setText(_translate("lp_editor_window", "Максимум (ось X)"))
+        self.button_save.setText(_translate("lp_editor_window", "Сохранить"))
+        self.groupBox_6.setTitle(_translate("lp_editor_window", "Термы"))
+        self.label_12.setText(_translate("lp_editor_window", "Новый терм"))
+        self.groupBox_3.setTitle(_translate("lp_editor_window", "Требования к виду функций принадлежности"))
+        self.label.setText(_translate("lp_editor_window", "Требование к упорядоченности термов"))
+        self.label_2.setText(_translate("lp_editor_window", "Требование к виду «крайних» функций принадлежности лингвистической переменной"))
+        self.label_3.setText(_translate("lp_editor_window", "Требование к полноте покрытия предметной области"))
+        self.label_4.setText(_translate("lp_editor_window", "Требование к разграничению понятий, описанных функциями принадлежности термов лингвистической переменной"))
+        self.label_5.setText(_translate("lp_editor_window", "Требование к наличию типового элемента"))
+        self.label_6.setText(_translate("lp_editor_window", "Требование к ограничению предметной шкалы"))
+        self.groupBox_7.setTitle(_translate("lp_editor_window", "Редактирование верхних координат терма"))
+        self.groupBox_2.setTitle(_translate("lp_editor_window", "График функций принадлежности"))
+        self.groupBox_5.setTitle(_translate("lp_editor_window", "Редактирование нижных координат терма"))
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    function_editor_window = QtWidgets.QWidget()
-    ui = Ui_function_editor_window()
-    ui.setupUi(function_editor_window)
-    function_editor_window.show()
+    lp_editor_window = QtWidgets.QWidget()
+    ui = Ui_lp_editor_window()
+    ui.setupUi(lp_editor_window)
+    lp_editor_window.show()
     sys.exit(app.exec_())
