@@ -14,7 +14,7 @@ from superqt import QRangeSlider
 
 import function_editor_window as function_editor_window_form
 import menu_window as menu_window_form
-import lp_selection_window as lp_selection_window_form
+import dictionary_window as dictionary_window_form
 
 """
 pip install pyinstaller
@@ -25,7 +25,7 @@ pyrcc5 -o resources.py resources.qrc
 
 CON = sqlite3.connect("dictionary.db")
 CUR = CON.cursor()
-CUR.execute("PRAGMA foreign_keys = ON")
+CUR.execute("PRAGMA foreign_keys = ON")  # Поддержка внешних ключей
 
 SETTINGS = QtCore.QSettings("settings.ini", QtCore.QSettings.IniFormat)
 BUILDING = True  # Флаг, отвечающий за отладочные функции
