@@ -13,7 +13,8 @@ class LPSelectionWindow(QWidget, lp_selection_window_form.Ui_lp_selection_window
         self.LPs = None
 
         self.button_open.clicked.connect(self.on_clicked_button_open)
-        self.button_cancel.clicked.connect(self.close)
+        self.button_delete.clicked.connect(self.on_clicked_button_delete)
+        self.button_exit.clicked.connect(self.close)
         self.list_lps.doubleClicked.connect(self.on_clicked_button_open)
 
     def on_clicked_button_open(self):
@@ -23,14 +24,27 @@ class LPSelectionWindow(QWidget, lp_selection_window_form.Ui_lp_selection_window
             lp_id = self.LPs[i][0]
             CURRENT_LP = LP()
             CURRENT_LP.load(lp_id)
-            self.hide()
+            self.close()
             function_editor_window.show()
 
-    def show(self):
-        super(LPSelectionWindow, self).show()
+    def on_clicked_button_delete(self):
+        i = self.list_lps.currentRow()
+        if i > -1:
+            lp_id = self.LPs[i][0]
+            CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (lp_id,))
+            CON.commit()
+            self.update_list_lps()
+
+    def update_list_lps(self):
         self.LPs = sorted(CUR.execute("SELECT lp_id, lp_title FROM LPs").fetchall(), key=lambda lp: lp[-1].lower())
         self.list_lps.clear()
         self.list_lps.addItems(title for _, title in self.LPs)
+        self.button_exit.setFocus()
+
+    def show(self):
+        super(LPSelectionWindow, self).show()
+        self.button_exit.setFocus()
+        self.update_list_lps()
 
     def closeEvent(self, a0):
         super(LPSelectionWindow, self).closeEvent(a0)
@@ -44,6 +58,7 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
 
         self.button_add_lp.clicked.connect(self.on_clicked_button_add_lp)
         self.button_load_lp.clicked.connect(self.on_clicked_button_load_lp)
+        self.button_exit.clicked.connect(app.closeAllWindows)
 
     def on_clicked_button_add_lp(self):
         global CURRENT_LP

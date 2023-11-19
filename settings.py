@@ -25,6 +25,8 @@ pyrcc5 -o resources.py resources.qrc
 
 CON = sqlite3.connect("dictionary.db")
 CUR = CON.cursor()
+CUR.execute("PRAGMA foreign_keys = ON")
+
 SETTINGS = QtCore.QSettings("settings.ini", QtCore.QSettings.IniFormat)
 BUILDING = True  # Флаг, отвечающий за отладочные функции
 DIRNAME, _ = os.path.split(os.path.realpath(__file__))  # Путь к папке с исполняемым файлом

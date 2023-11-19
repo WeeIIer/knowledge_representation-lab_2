@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_menu_window(object):
     def setupUi(self, menu_window):
         menu_window.setObjectName("menu_window")
-        menu_window.resize(503, 149)
+        menu_window.resize(503, 213)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -25,10 +25,10 @@ class Ui_menu_window(object):
         font.setFamily("Calibri")
         font.setPointSize(10)
         menu_window.setFont(font)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(menu_window)
-        self.horizontalLayout_2.setContentsMargins(10, 10, 10, 10)
-        self.horizontalLayout_2.setSpacing(10)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(menu_window)
+        self.verticalLayout_3.setContentsMargins(10, 10, 10, 10)
+        self.verticalLayout_3.setSpacing(10)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setSpacing(10)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
@@ -66,7 +66,17 @@ class Ui_menu_window(object):
         self.button_load_lp.setObjectName("button_load_lp")
         self.verticalLayout.addWidget(self.button_load_lp)
         self.verticalLayout_5.addWidget(self.groupBox)
-        self.horizontalLayout_2.addLayout(self.verticalLayout_5)
+        self.verticalLayout_3.addLayout(self.verticalLayout_5)
+        self.button_exit = QtWidgets.QPushButton(menu_window)
+        self.button_exit.setMinimumSize(QtCore.QSize(100, 40))
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.button_exit.setFont(font)
+        self.button_exit.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.button_exit.setIconSize(QtCore.QSize(24, 24))
+        self.button_exit.setObjectName("button_exit")
+        self.verticalLayout_3.addWidget(self.button_exit)
 
         self.retranslateUi(menu_window)
         QtCore.QMetaObject.connectSlotsByName(menu_window)
@@ -76,7 +86,8 @@ class Ui_menu_window(object):
         menu_window.setWindowTitle(_translate("menu_window", "Меню"))
         self.groupBox.setTitle(_translate("menu_window", "Редактор функций принадлежности лингвистической переменной"))
         self.button_add_lp.setText(_translate("menu_window", "Создать"))
-        self.button_load_lp.setText(_translate("menu_window", "Загрузить"))
+        self.button_load_lp.setText(_translate("menu_window", "Выбрать из словаря"))
+        self.button_exit.setText(_translate("menu_window", "Выйти"))
 
 
 if __name__ == "__main__":
