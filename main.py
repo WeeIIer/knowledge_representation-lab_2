@@ -1,10 +1,29 @@
 from settings import *
-from objects import LP, Dictionary, Attribute, PP
+from objects import LP, PP, Dictionary
 
 DICTIONARY = Dictionary()
 
 CURRENT_LP: LP | None = None
 CURRENT_PP: PP | None = None
+
+
+class AlertWindow(QWidget, alert_window_form.Ui_alert_window):
+    def __init__(self):
+        super(AlertWindow, self).__init__()
+        self.setupUi(self)
+
+        self.source_window: QWidget | None = None
+        self.button_exit.clicked.connect(self.close)
+
+    def show(self, source_window: QWidget = None, message: str = None):
+        super(AlertWindow, self).show()
+        self.source_window = source_window
+        self.source_window.setEnabled(False)
+        self.label_message.setText(message)
+
+    def closeEvent(self, a0):
+        super(AlertWindow, self).closeEvent(a0)
+        self.source_window.setEnabled(True)
 
 
 class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
@@ -145,6 +164,9 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         if CURRENT_LP.is_fullness() and all(CURRENT_LP.limits()):
             CURRENT_LP.save()
             DICTIONARY.load_LPs()
+            alert_window.show(self, "Сохранение прошло успешно!")
+        else:
+            alert_window.show(self, "Сохранение не удалось!")
 
     def on_item_clicked_list_terms(self):
         i = self.list_terms.currentRow()
@@ -322,6 +344,9 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         if CURRENT_PP.title and CURRENT_PP.is_attributes_fullness():
             CURRENT_PP.save()
             DICTIONARY.load_PPs()
+            alert_window.show(self, "Сохранение прошло успешно!")
+        else:
+            alert_window.show(self, "Сохранение не удалось!")
 
     def show(self):
         global CURRENT_PP
@@ -353,6 +378,7 @@ app.setStyle("fusion")
 app.setPalette(palette())
 #app.setWindowIcon(QIcon(":/logos/icons/program.png"))
 
+alert_window = AlertWindow()
 menu_window = MenuWindow()
 dictionary_window = DictionaryWindow()
 lp_editor_window = LPEditorWindow()

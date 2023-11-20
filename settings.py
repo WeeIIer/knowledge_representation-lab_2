@@ -12,6 +12,7 @@ from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor, QFont
 from PyQt5 import QtCore, Qt, QtWidgets
 from superqt import QRangeSlider
 
+import alert_window as alert_window_form
 import menu_window as menu_window_form
 import dictionary_window as dictionary_window_form
 import lp_editor_window as lp_editor_window_form
