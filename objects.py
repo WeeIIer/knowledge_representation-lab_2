@@ -104,7 +104,7 @@ class LP:
     def save(self):
         new = not bool(self.id)
         if new:
-            self.id = unique_id("LPs")
+            self.id = unique_id("LPs", "lp_id")
 
         data = {"LPs": [(self.id, self.title, self.x_start, self.x_stop)], "terms": []}  # Данные для сохранения в БД
 
@@ -143,39 +143,33 @@ class LP:
             self.terms = [Term(*term[2:]) for term in data["terms"]]
 
 
-class Dictionary:
-    def __init__(self):
-        self.LPs = []
-        self.PPs = []
-
-    def LP_titles(self):
-        return (lp.title for lp in self.LPs)
-
-    def LP(self, i: int) -> LP:
-        return self.LPs[i]
-
-    def del_LP(self, i: int):
-        CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (self.LP(i).id,))
-        CON.commit()
-        self.load_LPs()
-
-    def load_LPs(self):
-        self.LPs.clear()
-        for _, lp_id in sorted(CUR.execute("SELECT lp_title, lp_id FROM LPs").fetchall()):
-            lp = LP()
-            lp.load(lp_id)
-            self.LPs.append(lp)
-
-
 class Attribute:
-    def __init__(self, dictionary: Dictionary, not_output=True):
-        self.__dictionary = dictionary
-        self.widget = self.__create_widget(not_output)
+    def __init__(self, dictionary_instance, is_output=False, operation=0, lp_id=-1, connection=0, term_id=-1):
+        self.__dictionary: Dictionary = dictionary_instance
+        self.is_output: bool = is_output
+        self.widget: QWidget = self.__create_widget()
 
-        self.LP = None
+        self.operation, self.lp_id, self.connection, self.term_id = operation, lp_id, connection, term_id
+
+        self.__discard_outside = lambda attribute: None
+
+    def discard(self):
+        self.widget.deleteLater()
+        self.widget = None
+        self.lp_id = None
         self.term_id = None
+        self.__discard_outside(self)
 
-    def __create_widget(self, not_output: bool):
+    def set_discard_outside(self, func):
+        self.__discard_outside = func
+
+    def is_fullness(self) -> bool:
+        return all((self.widget, self.lp_id > -1, self.connection > -1))
+
+    def data(self) -> tuple:
+        return self.operation, self.lp_id, self.connection, self.term_id
+
+    def __create_widget(self):
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         cursor = QCursor(QtCore.Qt.PointingHandCursor)
@@ -211,7 +205,7 @@ class Attribute:
         combo_term.setCursor(cursor)
         container_layout.addWidget(combo_term)
 
-        if not_output:
+        if not self.is_output:
             button_delete = QtWidgets.QPushButton(container)
             size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
             button_delete.setSizePolicy(size_policy)
@@ -222,26 +216,36 @@ class Attribute:
             button_delete.setFont(font)
             button_delete.setCursor(cursor)
             button_delete.setText("Удалить")
-            button_delete.clicked.connect(self.__button_delete)
+            button_delete.clicked.connect(self.discard)
             container_layout.addWidget(button_delete)
 
         main_layout.addWidget(container)
         widget = QWidget()
         widget.setLayout(main_layout)
 
+        combo_operation.currentIndexChanged.connect(lambda: self.__combo_operation(combo_operation))
         combo_lp.currentIndexChanged.connect(lambda: self.__combo_lp(combo_lp, combo_term))
+        combo_connection.currentIndexChanged.connect(lambda: self.__combo_connection(combo_connection))
         combo_term.currentIndexChanged.connect(lambda: self.__combo_term(combo_term))
 
         return widget
+
+    def __combo_operation(self, combo_operation: QtWidgets.QComboBox):
+        i = combo_operation.currentIndex()
+        self.operation = i if i > -1 else 0
 
     def __combo_lp(self, combo_lp: QtWidgets.QComboBox, combo_term: QtWidgets.QComboBox):
         combo_term.clear()
         i = combo_lp.currentIndex()
         if i > -1:
-            self.LP = self.__dictionary.LP(i)
+            self.lp_id = self.__dictionary.LP(i).id
             combo_term.addItems(self.__dictionary.LP(i).term_titles())
         else:
-            self.LP = None
+            self.lp_id = None
+
+    def __combo_connection(self, combo_connection: QtWidgets.QComboBox):
+        i = combo_connection.currentIndex()
+        self.connection = i if i > -1 else 0
 
     def __combo_term(self, combo_term: QtWidgets.QComboBox):
         i = combo_term.currentIndex()
@@ -250,7 +254,114 @@ class Attribute:
         else:
             self.term_id = None
 
-    def __button_delete(self):
-        self.widget.deleteLater()
-        self.widget = None
-        self.LP = None
+
+class PP:
+    def __init__(self, dictionary_instance):
+        self.__dictionary = dictionary_instance
+        self.id: int = 0
+        self.title: str = ""
+        self.attributes: list[Attribute] = []
+        self.output_attribute: Attribute | None = None
+
+    def set_title(self, title: str):
+        self.title = title
+
+    def add_attribute(self, is_output=False):
+        attribute = Attribute(self.__dictionary, is_output)
+        attribute.set_discard_outside(self.__discard_attribute_outside)
+        if attribute.is_output:
+            self.output_attribute = attribute
+        else:
+            self.attributes.append(attribute)
+
+    def clear(self):
+        for attr in self.__all_attributes():
+            attr.discard()
+
+    def is_attributes_fullness(self) -> bool:
+        return all(attr.is_fullness() for attr in self.__all_attributes())
+
+    def save(self):
+        new = not bool(self.id)
+        if new:
+            self.id = unique_id("PPs", "pp_id")
+
+        data = {"PPs": (self.id, self.title), "attributes": []}  # Данные для сохранения в БД
+
+        for attr_id, attr in enumerate(self.__all_attributes()):  # Сформировать пакеты данных с атрибутами
+            data["attributes"].append((self.id, attr_id, *attr.data()))
+
+        if new:
+            sql = f"INSERT INTO PPs VALUES ({', '.join(repeat('?', len(data['PPs'])))})"
+            CUR.execute(sql, data["PPs"])
+        else:
+            fields = (f"{field} = ?" for field in ("pp_id", "pp_title"))
+            sql = f"UPDATE PPs SET {', '.join(fields)} WHERE pp_id = ?"
+            CUR.execute(sql, (*data["PPs"], self.id))
+        CON.commit()
+
+        if not new:  # Удалить атрибуты из БД, если ПП существует
+            CUR.execute("DELETE FROM attributes WHERE pp_id = ?", (self.id,))
+            CON.commit()
+        for attr_id, row in enumerate(data["attributes"]):  # Добавить аттрибуты ПП в БД
+            sql = f"INSERT INTO attributes VALUES ({', '.join(repeat('?', len(row)))})"
+            CUR.execute(sql, row)
+            CON.commit()
+
+    def load(self, pp_id: int | None = None):
+        if pp_id is None:
+            self.id = None
+        else:
+            data = {"PPs": None, "attributes": None}
+
+            for table_name in data:
+                sql = f"SELECT * FROM {table_name} WHERE pp_id = ?"
+                data[table_name] = CUR.execute(sql, (pp_id,)).fetchall()
+
+            self.id, self.title = data["PPs"].pop()
+            self.output_attribute = Attribute(self.__dictionary, True, *data["attributes"].pop()[2:])
+            self.attributes = [Attribute(self.__dictionary, False, *attr[2:]) for attr in data["attributes"]]
+
+    def __discard_attribute_outside(self, attribute: Attribute):
+        if not attribute.is_output:
+            del self.attributes[self.attributes.index(attribute)]
+
+    def __all_attributes(self) -> list[Attribute]:
+        return self.attributes + [self.output_attribute]
+
+
+class Dictionary:
+    def __init__(self):
+        self.LPs: list[LP] = []
+        self.PPs: list[PP] = []
+
+    def LP_titles(self):
+        return (lp.title for lp in self.LPs)
+
+    def PP_titles(self):
+        return (pp.title for pp in self.PPs)
+
+    def LP(self, i: int) -> LP:
+        return self.LPs[i]
+
+    def PP(self, i: int) -> PP:
+        return self.PPs[i]
+
+    def del_LP(self, i: int):
+        CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (self.LP(i).id,))
+        CON.commit()
+        self.load_LPs()
+
+    def load_LPs(self):
+        self.LPs.clear()
+        for _, lp_id in sorted(CUR.execute("SELECT lp_title, lp_id FROM LPs").fetchall()):
+            lp = LP()
+            lp.load(lp_id)
+            self.LPs.append(lp)
+
+    def load_PPs(self):
+        self.PPs.clear()
+        for _, pp_id in sorted(CUR.execute("SELECT pp_title, pp_id FROM PPs").fetchall()):
+            pp = PP(self)
+            pp.load(pp_id)
+            self.PPs.append(pp)

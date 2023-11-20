@@ -1,10 +1,10 @@
 from settings import *
-from objects import LP, Dictionary, Attribute
+from objects import LP, Dictionary, Attribute, PP
 
 DICTIONARY = Dictionary()
-DICTIONARY.load_LPs()
 
 CURRENT_LP: LP | None = None
+CURRENT_PP: PP | None = None
 
 
 class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
@@ -31,6 +31,8 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
         dictionary_window.show(0)
 
     def on_clicked_button_add_pp(self):
+        global CURRENT_PP
+        CURRENT_PP = None
         self.hide()
         pp_editor_window.show()
 
@@ -49,15 +51,28 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
         self.button_open.clicked.connect(self.on_clicked_button_open)
         self.button_delete.clicked.connect(self.on_clicked_button_delete)
         self.button_exit.clicked.connect(self.close)
+
         self.list_lp.doubleClicked.connect(self.on_clicked_button_open)
+        self.tabWidget.tabBar().currentChanged.connect(self.on_tab_current_changed)
+
+    def on_tab_current_changed(self):
+        self.current_tab = self.tabWidget.tabBar().currentIndex()
 
     def on_clicked_button_open(self):
-        global CURRENT_LP
-        i = self.list_lp.currentRow()
-        if i > -1:
-            CURRENT_LP = DICTIONARY.LP(i)
-            self.close()
-            lp_editor_window.show()
+        global CURRENT_LP, CURRENT_PP
+
+        if self.current_tab == 0:
+            i = self.list_lp.currentRow()
+            if i > -1:
+                CURRENT_LP = DICTIONARY.LP(i)
+                self.close()
+                lp_editor_window.show()
+        elif self.current_tab == 1:
+            i = self.list_pp.currentRow()
+            if i > -1:
+                CURRENT_PP = DICTIONARY.PP(i)
+                self.close()
+                pp_editor_window.show()
 
     def on_clicked_button_delete(self):
         i = self.list_lp.currentRow()
@@ -65,18 +80,24 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
             DICTIONARY.del_LP(i)
             self.update_list_lp()
 
-    def update_list_lp(self):
-        self.list_lp.clear()
-        self.list_lp.addItems(DICTIONARY.LP_titles())
+    def update_lists(self):
+        if self.current_tab == 0:
+            DICTIONARY.load_LPs()
+            self.list_lp.clear()
+            self.list_lp.addItems(DICTIONARY.LP_titles())
+        elif self.current_tab == 1:
+            DICTIONARY.load_PPs()
+            self.list_pp.clear()
+            self.list_pp.addItems(DICTIONARY.PP_titles())
+
         self.button_exit.setFocus()
 
-    def show(self, current_tab: int = 0):
+    def show(self, current_tab=0):
         super(DictionaryWindow, self).show()
 
         self.current_tab = current_tab
         self.tabWidget.tabBar().setCurrentIndex(self.current_tab)
-        self.button_exit.setFocus()
-        self.update_list_lp()
+        self.update_lists()
 
     def closeEvent(self, a0):
         super(DictionaryWindow, self).closeEvent(a0)
@@ -266,33 +287,39 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         super(PPEditorWindow, self).__init__()
         self.setupUi(self)
 
-        self.attributes: list[Attribute] = []
-        self.output_attribute: Attribute | None = None
-
-
+        self.edit_title.textChanged.connect(self.on_text_changed_edit_title)
         self.button_add_attribute.clicked.connect(self.on_clicked_button_add_attribute)
+        self.button_save.clicked.connect(self.on_clicked_button_save)
         self.button_exit.clicked.connect(self.close)
 
+    def on_text_changed_edit_title(self):
+        title = self.edit_title.text()
+        if title.strip():
+            CURRENT_PP.set_title(title)
+
     def on_clicked_button_add_attribute(self):
-        attribute = Attribute(DICTIONARY)
-        self.attributes.append(attribute)
-        self.layout_scroll_attribute.addWidget(attribute.widget)
+        CURRENT_PP.add_attribute()
+        self.layout_scroll_attribute.addWidget(CURRENT_PP.attributes[-1].widget)
+
+    def on_clicked_button_save(self):
+        CURRENT_PP.save()
+        #DICTIONARY.load_PPs()
 
     def show(self):
+        global CURRENT_PP
         super(PPEditorWindow, self).show()
         self.showMaximized()
 
-        self.output_attribute = Attribute(DICTIONARY, False)
-        self.layout_output_attribute.addWidget(self.output_attribute.widget)
+        CURRENT_PP = PP(DICTIONARY)
+        CURRENT_PP.add_attribute(True)
+        self.layout_output_attribute.addWidget(CURRENT_PP.output_attribute.widget)
+
+        self.edit_title.clear()
 
     def closeEvent(self, a0):
         super(PPEditorWindow, self).closeEvent(a0)
 
-        while self.attributes:
-            attribute = self.attributes.pop()
-            attribute.widget.deleteLater() if attribute.widget is not None else ...
-
-        self.output_attribute.widget.deleteLater()
+        CURRENT_PP.clear()
         menu_window.show()
 
 
