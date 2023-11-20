@@ -40,6 +40,11 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
         self.hide()
         dictionary_window.show(1)
 
+    def show(self):
+        super(MenuWindow, self).show()
+        DICTIONARY.load_LPs()
+        DICTIONARY.load_PPs()
+
 
 class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
     def __init__(self):
@@ -53,10 +58,12 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
         self.button_exit.clicked.connect(self.close)
 
         self.list_lp.doubleClicked.connect(self.on_clicked_button_open)
+        self.list_pp.doubleClicked.connect(self.on_clicked_button_open)
         self.tabWidget.tabBar().currentChanged.connect(self.on_tab_current_changed)
 
     def on_tab_current_changed(self):
         self.current_tab = self.tabWidget.tabBar().currentIndex()
+        self.update_lists()
 
     def on_clicked_button_open(self):
         global CURRENT_LP, CURRENT_PP
@@ -75,10 +82,16 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
                 pp_editor_window.show()
 
     def on_clicked_button_delete(self):
-        i = self.list_lp.currentRow()
-        if i > -1:
-            DICTIONARY.del_LP(i)
-            self.update_list_lp()
+        if self.current_tab == 0:
+            i = self.list_lp.currentRow()
+            if i > -1:
+                DICTIONARY.discard_LP(i)
+        elif self.current_tab == 1:
+            i = self.list_pp.currentRow()
+            if i > -1:
+                DICTIONARY.discard_PP(i)
+
+        self.update_lists()
 
     def update_lists(self):
         if self.current_tab == 0:
@@ -123,14 +136,15 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         self.list_terms.doubleClicked.connect(self.on_double_clicked_list_terms)
         self.slider_x_axis_bottom.valueChanged.connect(self.on_value_changed_slider_x_axis_bottom)
         self.slider_x_axis_top.valueChanged.connect(self.on_value_changed_slider_x_axis_top)
-        self.edit_title.textChanged.connect(self.on_text_changed_edit_lp)
-        self.edit_x_start.textChanged.connect(self.on_text_changed_edit_lp)
-        self.edit_x_stop.textChanged.connect(self.on_text_changed_edit_lp)
+        self.edit_title.textChanged.connect(self.on_text_changed_edit_title)
+        self.edit_x_start.textChanged.connect(self.on_text_changed_edit_x)
+        self.edit_x_stop.textChanged.connect(self.on_text_changed_edit_x)
         self.edit_add_term.returnPressed.connect(self.on_return_pressed_edit_add_term)
 
     def on_clicked_button_save(self):
-        CURRENT_LP.save()
-        DICTIONARY.load_LPs()
+        if CURRENT_LP.is_fullness() and all(CURRENT_LP.limits()):
+            CURRENT_LP.save()
+            DICTIONARY.load_LPs()
 
     def on_item_clicked_list_terms(self):
         i = self.list_terms.currentRow()
@@ -160,20 +174,19 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
             self.groupBox_7.setTitle(f"Редактирование верхних координат терма {x_pair}")
             self.draw_plot()
 
-    def on_text_changed_edit_lp(self):
-        global CURRENT_LP
+    def on_text_changed_edit_title(self):
         title = self.edit_title.text()
+        if title.strip():
+            CURRENT_LP.set_title(title)
+
+    def on_text_changed_edit_x(self):
         x_start, x_stop = self.edit_x_start.text(), self.edit_x_stop.text()
         try:
             x_start, x_stop = int(x_start), int(x_stop)
-            if title.strip() and x_start < x_stop:
-                if CURRENT_LP is None:
-                    CURRENT_LP = LP()
-                    CURRENT_LP.load()
-                CURRENT_LP.set_title(title)
+            if x_start < x_stop:
                 CURRENT_LP.set_x_start(x_start)
                 CURRENT_LP.set_x_stop(x_stop)
-                #CURRENT_LP.update_terms()
+                CURRENT_LP.update_terms()
                 self.add_terms_to_list()
                 self.change_sliders_range()
                 self.draw_plot()
@@ -198,10 +211,10 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         self.list_terms.addItems(CURRENT_LP.term_titles())
 
     def change_sliders_range(self):
-        if CURRENT_LP is None:
-            x_start, x_stop = 0, 1
-        else:
+        if CURRENT_LP.is_fullness():
             x_start, x_stop = CURRENT_LP.x_start, CURRENT_LP.x_stop
+        else:
+            x_start, x_stop = 0, 1
 
         self.slider_x_axis_bottom.setRange(x_start, x_stop)
         self.slider_x_axis_bottom.setValue([x_start, x_stop])
@@ -212,9 +225,7 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         self.groupBox_7.setTitle(f"Редактирование верхних координат терма ( ... )")
 
     def update_limits(self):
-        limits = CURRENT_LP.limits() if CURRENT_LP is not None else [False] * 6
-        self.button_save.setEnabled(all(limits))
-        for i, state in enumerate(limits, 1):
+        for i, state in enumerate(CURRENT_LP.limits(), 1):
             self.findChild(QCheckBox, f"check_err_{i}").setChecked(state)
 
     def draw_plot(self):
@@ -241,24 +252,30 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
         self.update_limits()
 
     def show(self):
+        global CURRENT_LP
         super(LPEditorWindow, self).show()
         self.showMaximized()
 
         self.edit_title.clear()
         self.edit_x_start.clear()
         self.edit_x_stop.clear()
+        self.edit_add_term.clear()
         self.list_terms.clear()
         self.label_plot.clear()
-        self.update_limits()
 
-        if CURRENT_LP is not None:
+        if CURRENT_LP is None:
+            CURRENT_LP = LP()
+            CURRENT_LP.load()
+            self.edit_add_term.setEnabled(False)
+        else:
             self.edit_title.setText(CURRENT_LP.title)
             self.edit_x_start.setText(str(CURRENT_LP.x_start))
             self.edit_x_stop.setText(str(CURRENT_LP.x_stop))
             self.add_terms_to_list()
 
-        self.edit_add_term.clear()
         self.change_sliders_range()
+        if CURRENT_LP.is_fullness():
+            self.draw_plot()
 
     def closeEvent(self, a0):
         super(LPEditorWindow, self).closeEvent(a0)
@@ -302,23 +319,31 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         self.layout_scroll_attribute.addWidget(CURRENT_PP.attributes[-1].widget)
 
     def on_clicked_button_save(self):
-        CURRENT_PP.save()
-        #DICTIONARY.load_PPs()
+        if CURRENT_PP.title and CURRENT_PP.is_attributes_fullness():
+            CURRENT_PP.save()
+            DICTIONARY.load_PPs()
 
     def show(self):
         global CURRENT_PP
         super(PPEditorWindow, self).show()
         self.showMaximized()
 
-        CURRENT_PP = PP(DICTIONARY)
-        CURRENT_PP.add_attribute(True)
-        self.layout_output_attribute.addWidget(CURRENT_PP.output_attribute.widget)
-
         self.edit_title.clear()
+
+        if CURRENT_PP is None:
+            CURRENT_PP = PP(DICTIONARY)
+            CURRENT_PP.add_attribute(is_output=True)
+            self.layout_output_attribute.addWidget(CURRENT_PP.output_attribute.widget)
+        else:
+            self.edit_title.setText(CURRENT_PP.title)
+            for attr in CURRENT_PP.attributes:
+                self.layout_scroll_attribute.addWidget(attr.widget)
+                attr.set_combo_indices()
+            self.layout_output_attribute.addWidget(CURRENT_PP.output_attribute.widget)
+            CURRENT_PP.output_attribute.set_combo_indices()
 
     def closeEvent(self, a0):
         super(PPEditorWindow, self).closeEvent(a0)
-
         CURRENT_PP.clear()
         menu_window.show()
 

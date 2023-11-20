@@ -34,6 +34,9 @@ class LP:
     def add_term(self, title: str):
         self.update_terms(self.term_titles() + [title])
 
+    def is_fullness(self) -> bool:
+        return all((self.title, self.x_start, self.x_stop))
+
     def update_terms(self, term_titles: list[str] | None = None):
         if term_titles is None:
             term_titles = self.term_titles()
@@ -147,11 +150,13 @@ class Attribute:
     def __init__(self, dictionary_instance, is_output=False, operation=0, lp_id=-1, connection=0, term_id=-1):
         self.__dictionary: Dictionary = dictionary_instance
         self.is_output: bool = is_output
-        self.widget: QWidget = self.__create_widget()
-
         self.operation, self.lp_id, self.connection, self.term_id = operation, lp_id, connection, term_id
 
         self.__discard_outside = lambda attribute: None
+        self.__combo: tuple[QtWidgets.QComboBox, ...]
+
+        self.widget: QWidget = self.__create_widget()
+        self.__set_combo_connections()
 
     def discard(self):
         self.widget.deleteLater()
@@ -162,6 +167,13 @@ class Attribute:
 
     def set_discard_outside(self, func):
         self.__discard_outside = func
+
+    def set_combo_indices(self):
+        _, combo_lp, _, combo_term = self.__combo
+
+        combo_lp.setCurrentIndex(self.__dictionary.LP_index(self.lp_id))
+        combo_term.addItems(self.__dictionary.LPs[self.__dictionary.LP_index(self.lp_id)].term_titles())
+        combo_term.setCurrentIndex(self.term_id)
 
     def is_fullness(self) -> bool:
         return all((self.widget, self.lp_id > -1, self.connection > -1))
@@ -185,6 +197,7 @@ class Attribute:
         combo_operation.setMinimumSize(QtCore.QSize(0, 40))
         combo_operation.setCursor(cursor)
         combo_operation.addItems(OPERATIONS)
+        combo_operation.setCurrentIndex(self.operation)
         container_layout.addWidget(combo_operation)
 
         combo_lp = QtWidgets.QComboBox(container)
@@ -198,6 +211,7 @@ class Attribute:
         combo_connection.setMinimumSize(QtCore.QSize(0, 40))
         combo_connection.setCursor(cursor)
         combo_connection.addItems(CONNECTIONS)
+        combo_connection.setCurrentIndex(self.connection)
         container_layout.addWidget(combo_connection)
 
         combo_term = QtWidgets.QComboBox(container)
@@ -223,41 +237,43 @@ class Attribute:
         widget = QWidget()
         widget.setLayout(main_layout)
 
-        combo_operation.currentIndexChanged.connect(lambda: self.__combo_operation(combo_operation))
-        combo_lp.currentIndexChanged.connect(lambda: self.__combo_lp(combo_lp, combo_term))
-        combo_connection.currentIndexChanged.connect(lambda: self.__combo_connection(combo_connection))
-        combo_term.currentIndexChanged.connect(lambda: self.__combo_term(combo_term))
+        self.__combo = (combo_operation, combo_lp, combo_connection, combo_term)
 
         return widget
 
-    def __combo_operation(self, combo_operation: QtWidgets.QComboBox):
-        i = combo_operation.currentIndex()
-        self.operation = i if i > -1 else 0
+    def __set_combo_connections(self):
+        combo_operation, combo_lp, combo_connection, combo_term = self.__combo
 
-    def __combo_lp(self, combo_lp: QtWidgets.QComboBox, combo_term: QtWidgets.QComboBox):
-        combo_term.clear()
-        i = combo_lp.currentIndex()
-        if i > -1:
-            self.lp_id = self.__dictionary.LP(i).id
-            combo_term.addItems(self.__dictionary.LP(i).term_titles())
-        else:
-            self.lp_id = None
+        def __combo_operation():
+            i = combo_operation.currentIndex()
+            self.operation = i if i > -1 else 0
 
-    def __combo_connection(self, combo_connection: QtWidgets.QComboBox):
-        i = combo_connection.currentIndex()
-        self.connection = i if i > -1 else 0
+        def __combo_lp():
+            combo_term.clear()
+            i = combo_lp.currentIndex()
+            if i > -1:
+                self.lp_id = self.__dictionary.LP(i).id
+                combo_term.addItems(self.__dictionary.LP(i).term_titles())
+            else:
+                self.lp_id = None
 
-    def __combo_term(self, combo_term: QtWidgets.QComboBox):
-        i = combo_term.currentIndex()
-        if i > -1:
-            self.term_id = i
-        else:
-            self.term_id = None
+        def __combo_connection():
+            i = combo_connection.currentIndex()
+            self.connection = i if i > -1 else 0
+
+        def __combo_term():
+            i = combo_term.currentIndex()
+            self.term_id = i if i > -1 else None
+
+        combo_operation.currentIndexChanged.connect(__combo_operation)
+        combo_lp.currentIndexChanged.connect(__combo_lp)
+        combo_connection.currentIndexChanged.connect(__combo_connection)
+        combo_term.currentIndexChanged.connect(__combo_term)
 
 
 class PP:
     def __init__(self, dictionary_instance):
-        self.__dictionary = dictionary_instance
+        self.__dictionary: Dictionary = dictionary_instance
         self.id: int = 0
         self.title: str = ""
         self.attributes: list[Attribute] = []
@@ -266,17 +282,13 @@ class PP:
     def set_title(self, title: str):
         self.title = title
 
-    def add_attribute(self, is_output=False):
-        attribute = Attribute(self.__dictionary, is_output)
+    def add_attribute(self, is_output=False, data: tuple = None):
+        attribute = Attribute(self.__dictionary, is_output, *data) if data else Attribute(self.__dictionary, is_output)
         attribute.set_discard_outside(self.__discard_attribute_outside)
         if attribute.is_output:
             self.output_attribute = attribute
         else:
             self.attributes.append(attribute)
-
-    def clear(self):
-        for attr in self.__all_attributes():
-            attr.discard()
 
     def is_attributes_fullness(self) -> bool:
         return all(attr.is_fullness() for attr in self.__all_attributes())
@@ -319,8 +331,13 @@ class PP:
                 data[table_name] = CUR.execute(sql, (pp_id,)).fetchall()
 
             self.id, self.title = data["PPs"].pop()
-            self.output_attribute = Attribute(self.__dictionary, True, *data["attributes"].pop()[2:])
-            self.attributes = [Attribute(self.__dictionary, False, *attr[2:]) for attr in data["attributes"]]
+            self.add_attribute(True, data["attributes"].pop()[2:])
+            for attr in data["attributes"]:
+                self.add_attribute(False, attr[2:])
+
+    def clear(self):
+        for attr in self.__all_attributes():
+            attr.discard()
 
     def __discard_attribute_outside(self, attribute: Attribute):
         if not attribute.is_output:
@@ -344,13 +361,21 @@ class Dictionary:
     def LP(self, i: int) -> LP:
         return self.LPs[i]
 
+    def LP_index(self, lp_id: int) -> int:
+        return [lp.id for lp in self.LPs].index(lp_id)
+
     def PP(self, i: int) -> PP:
         return self.PPs[i]
 
-    def del_LP(self, i: int):
+    def discard_LP(self, i: int):
         CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (self.LP(i).id,))
         CON.commit()
         self.load_LPs()
+
+    def discard_PP(self, i: int):
+        CUR.execute("DELETE FROM PPs WHERE pp_id = ?", (self.PP(i).id,))
+        CON.commit()
+        self.load_PPs()
 
     def load_LPs(self):
         self.LPs.clear()
