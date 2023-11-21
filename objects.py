@@ -35,7 +35,7 @@ class LP:
         self.update_terms(self.term_titles() + [title])
 
     def is_fullness(self) -> bool:
-        return all((self.title, self.x_start, self.x_stop))
+        return all((self.title, isinstance(self.x_start, int), isinstance(self.x_stop, int)))
 
     def update_terms(self, term_titles: list[str] | None = None):
         if term_titles is None:
@@ -168,6 +168,13 @@ class Attribute:
     def set_discard_outside(self, func):
         self.__discard_outside = func
 
+    def update_first_combo_operation(self):
+        combo_operation = self.__combo[0]
+        combo_operation.clear()
+        combo_operation.addItems(["ЕСЛИ"])
+        combo_operation.setCurrentIndex(0)
+        combo_operation.setEnabled(False)
+
     def set_combo_indices(self):
         _, combo_lp, _, combo_term = self.__combo
 
@@ -196,8 +203,13 @@ class Attribute:
         combo_operation = QtWidgets.QComboBox(container)
         combo_operation.setMinimumSize(QtCore.QSize(0, 40))
         combo_operation.setCursor(cursor)
-        combo_operation.addItems(OPERATIONS)
-        combo_operation.setCurrentIndex(self.operation)
+        if self.is_output:
+            combo_operation.addItems(["ТО"])
+            combo_operation.setCurrentIndex(0)
+            combo_operation.setEnabled(False)
+        else:
+            combo_operation.addItems(OPERATIONS)
+            combo_operation.setCurrentIndex(self.operation)
         container_layout.addWidget(combo_operation)
 
         combo_lp = QtWidgets.QComboBox(container)
@@ -289,9 +301,11 @@ class PP:
             self.output_attribute = attribute
         else:
             self.attributes.append(attribute)
+            if len(self.attributes) == 1:
+                attribute.update_first_combo_operation()
 
     def is_attributes_fullness(self) -> bool:
-        return all(attr.is_fullness() for attr in self.__all_attributes())
+        return self.attributes and all(attr.is_fullness() for attr in self.__all_attributes())
 
     def save(self):
         new = not bool(self.id)
@@ -341,7 +355,10 @@ class PP:
 
     def __discard_attribute_outside(self, attribute: Attribute):
         if not attribute.is_output:
-            del self.attributes[self.attributes.index(attribute)]
+            i = self.attributes.index(attribute)
+            del self.attributes[i]
+            if i == 0 and self.attributes:
+                self.attributes[0].update_first_combo_operation()
 
     def __all_attributes(self) -> list[Attribute]:
         return self.attributes + [self.output_attribute]

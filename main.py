@@ -1,3 +1,5 @@
+import shapely
+
 from settings import *
 from objects import LP, PP, Dictionary
 
@@ -261,6 +263,15 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
             ax.plot([term.x_lb, term.x_lt], [0, 1], linewidth=5, color="red")
             ax.plot([term.x_lt, term.x_rt], [1, 1], linewidth=5, color="red")
             ax.plot([term.x_rt, term.x_rb], [1, 0], linewidth=5, color="red")
+
+            # a, b = (term.x_lb, 0), (term.x_lt, 1)
+            # c, d = (10, 0), (10, 1)
+            # ax.plot([10, 10], [0, 1], linewidth=5, color="blue")
+            # line1 = shapely.LineString([a, b])
+            # line2 = shapely.LineString([c, d])
+            # point = line1.intersection(line2)
+            # print(point)
+            break
 
         ax.yaxis.set_visible(False)
         ax.grid(which="major", color="k", linestyle="--")
