@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_menu_window(object):
     def setupUi(self, menu_window):
         menu_window.setObjectName("menu_window")
-        menu_window.resize(503, 336)
+        menu_window.resize(500, 336)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)

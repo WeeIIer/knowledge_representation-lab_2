@@ -158,6 +158,10 @@ class Attribute:
         self.widget: QWidget = self.__create_widget()
         self.__set_combo_connections()
 
+    def expression(self) -> str:
+        data = map(QtWidgets.QComboBox.currentText, self.__combo)
+        return " ".join(value if not i % 2 else f'"{value}"' for i, value in enumerate(data))
+
     def discard(self):
         self.widget.deleteLater()
         self.widget = None
@@ -287,12 +291,12 @@ class PP:
     def __init__(self, dictionary_instance):
         self.__dictionary: Dictionary = dictionary_instance
         self.id: int = 0
-        self.title: str = ""
+        self.expression: str = ""
         self.attributes: list[Attribute] = []
         self.output_attribute: Attribute | None = None
 
-    def set_title(self, title: str):
-        self.title = title
+    def update_expression(self):
+        self.expression = " ".join(map(Attribute.expression, self.__all_attributes()))
 
     def add_attribute(self, is_output=False, data: tuple = None):
         attribute = Attribute(self.__dictionary, is_output, *data) if data else Attribute(self.__dictionary, is_output)
@@ -312,7 +316,8 @@ class PP:
         if new:
             self.id = unique_id("PPs", "pp_id")
 
-        data = {"PPs": (self.id, self.title), "attributes": []}  # Данные для сохранения в БД
+        self.update_expression()
+        data = {"PPs": (self.id, self.expression), "attributes": []}  # Данные для сохранения в БД
 
         for attr_id, attr in enumerate(self.__all_attributes()):  # Сформировать пакеты данных с атрибутами
             data["attributes"].append((self.id, attr_id, *attr.data()))
@@ -321,7 +326,7 @@ class PP:
             sql = f"INSERT INTO PPs VALUES ({', '.join(repeat('?', len(data['PPs'])))})"
             CUR.execute(sql, data["PPs"])
         else:
-            fields = (f"{field} = ?" for field in ("pp_id", "pp_title"))
+            fields = (f"{field} = ?" for field in ("pp_id", "pp_expression"))
             sql = f"UPDATE PPs SET {', '.join(fields)} WHERE pp_id = ?"
             CUR.execute(sql, (*data["PPs"], self.id))
         CON.commit()
@@ -344,7 +349,7 @@ class PP:
                 sql = f"SELECT * FROM {table_name} WHERE pp_id = ?"
                 data[table_name] = CUR.execute(sql, (pp_id,)).fetchall()
 
-            self.id, self.title = data["PPs"].pop()
+            self.id, self.expression = data["PPs"].pop()
             self.add_attribute(True, data["attributes"].pop()[2:])
             for attr in data["attributes"]:
                 self.add_attribute(False, attr[2:])
@@ -373,7 +378,7 @@ class Dictionary:
         return (lp.title for lp in self.LPs)
 
     def PP_titles(self):
-        return (pp.title for pp in self.PPs)
+        return (pp.expression for pp in self.PPs)
 
     def LP(self, i: int) -> LP:
         return self.LPs[i]
@@ -403,7 +408,7 @@ class Dictionary:
 
     def load_PPs(self):
         self.PPs.clear()
-        for _, pp_id in sorted(CUR.execute("SELECT pp_title, pp_id FROM PPs").fetchall()):
+        for _, pp_id in sorted(CUR.execute("SELECT pp_expression, pp_id FROM PPs").fetchall()):
             pp = PP(self)
             pp.load(pp_id)
             self.PPs.append(pp)

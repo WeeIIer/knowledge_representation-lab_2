@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_alert_window(object):
     def setupUi(self, alert_window):
         alert_window.setObjectName("alert_window")
-        alert_window.resize(503, 131)
+        alert_window.resize(500, 131)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)

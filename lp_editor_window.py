@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_lp_editor_window(object):
     def setupUi(self, lp_editor_window):
         lp_editor_window.setObjectName("lp_editor_window")
-        lp_editor_window.resize(1023, 689)
+        lp_editor_window.resize(1000, 700)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)

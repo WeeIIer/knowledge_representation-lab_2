@@ -271,7 +271,6 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
             # line2 = shapely.LineString([c, d])
             # point = line1.intersection(line2)
             # print(point)
-            break
 
         ax.yaxis.set_visible(False)
         ax.grid(which="major", color="k", linestyle="--")
@@ -337,24 +336,19 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         super(PPEditorWindow, self).__init__()
         self.setupUi(self)
 
-        self.edit_title.textChanged.connect(self.on_text_changed_edit_title)
         self.button_add_attribute.clicked.connect(self.on_clicked_button_add_attribute)
         self.button_save.clicked.connect(self.on_clicked_button_save)
         self.button_exit.clicked.connect(self.close)
-
-    def on_text_changed_edit_title(self):
-        title = self.edit_title.text()
-        if title.strip():
-            CURRENT_PP.set_title(title)
 
     def on_clicked_button_add_attribute(self):
         CURRENT_PP.add_attribute()
         self.layout_scroll_attribute.addWidget(CURRENT_PP.attributes[-1].widget)
 
     def on_clicked_button_save(self):
-        if CURRENT_PP.title and CURRENT_PP.is_attributes_fullness():
+        if CURRENT_PP.is_attributes_fullness():
             CURRENT_PP.save()
             DICTIONARY.load_PPs()
+            self.edit_expression.setText(CURRENT_PP.expression)
             alert_window.show(self, "Сохранение прошло успешно!")
         else:
             alert_window.show(self, "Сохранение не удалось!")
@@ -364,14 +358,14 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         super(PPEditorWindow, self).show()
         self.showMaximized()
 
-        self.edit_title.clear()
+        self.edit_expression.clear()
 
         if CURRENT_PP is None:
             CURRENT_PP = PP(DICTIONARY)
             CURRENT_PP.add_attribute(is_output=True)
             self.layout_output_attribute.addWidget(CURRENT_PP.output_attribute.widget)
         else:
-            self.edit_title.setText(CURRENT_PP.title)
+            self.edit_expression.setText(CURRENT_PP.expression)
             for attr in CURRENT_PP.attributes:
                 self.layout_scroll_attribute.addWidget(attr.widget)
                 attr.set_combo_indices()

@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_dictionary_window(object):
     def setupUi(self, dictionary_window):
         dictionary_window.setObjectName("dictionary_window")
-        dictionary_window.resize(503, 422)
+        dictionary_window.resize(800, 400)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
