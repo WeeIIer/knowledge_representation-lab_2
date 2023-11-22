@@ -169,10 +169,6 @@ class Ui_pp_editor_window(object):
         self.edit_expression.setReadOnly(True)
         self.edit_expression.setObjectName("edit_expression")
         self.horizontalLayout.addWidget(self.edit_expression)
-        self.verticalLayout_20 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_20.setSpacing(5)
-        self.verticalLayout_20.setObjectName("verticalLayout_20")
-        self.horizontalLayout.addLayout(self.verticalLayout_20)
         self.verticalLayout_2.addWidget(self.groupBox)
 
         self.retranslateUi(pp_editor_window)

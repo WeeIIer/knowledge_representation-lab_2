@@ -18,6 +18,7 @@ import menu_window as menu_window_form
 import dictionary_window as dictionary_window_form
 import lp_editor_window as lp_editor_window_form
 import pp_editor_window as pp_editor_window_form
+import controller_window as controller_window_form
 
 
 """

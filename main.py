@@ -33,6 +33,8 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
         super(MenuWindow, self).__init__()
         self.setupUi(self)
 
+        self.button_add_project.clicked.connect(self.on_clicked_button_add_project)
+
         self.button_add_lp.clicked.connect(self.on_clicked_button_add_lp)
         self.button_dict_lp.clicked.connect(self.on_clicked_button_dict_lp)
 
@@ -40,6 +42,10 @@ class MenuWindow(QWidget, menu_window_form.Ui_menu_window):
         self.button_dict_pp.clicked.connect(self.on_clicked_button_dict_pp)
 
         self.button_exit.clicked.connect(app.closeAllWindows)
+
+    def on_clicked_button_add_project(self):
+        self.hide()
+        controller_window.show()
 
     def on_clicked_button_add_lp(self):
         global CURRENT_LP
@@ -378,6 +384,19 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         menu_window.show()
 
 
+class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
+    def __init__(self):
+        super(ControllerWindow, self).__init__()
+        self.setupUi(self)
+
+        self.button_exit.clicked.connect(self.close)
+
+    def closeEvent(self, a0):
+        super(ControllerWindow, self).closeEvent(a0)
+
+        menu_window.show()
+
+
 app = QApplication(sys.argv)
 app.setStyle("fusion")
 app.setPalette(palette())
@@ -388,6 +407,7 @@ menu_window = MenuWindow()
 dictionary_window = DictionaryWindow()
 lp_editor_window = LPEditorWindow()
 pp_editor_window = PPEditorWindow()
+controller_window = ControllerWindow()
 
 menu_window.show()
 app.exec_()
