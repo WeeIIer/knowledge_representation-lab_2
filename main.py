@@ -1,12 +1,12 @@
-import shapely
-
 from settings import *
-from objects import LP, PP, Dictionary
+from objects import LP, PP, Dictionary, FuzzyProject
+from functions import create_plot
 
 DICTIONARY = Dictionary()
 
 CURRENT_LP: LP | None = None
 CURRENT_PP: PP | None = None
+CURRENT_PROJECT: FuzzyProject | None = None
 
 
 class AlertWindow(QWidget, alert_window_form.Ui_alert_window):
@@ -259,34 +259,8 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
             self.findChild(QCheckBox, f"check_err_{i}").setChecked(state)
 
     def draw_plot(self):
-        plt.rc("font", size=8)
-        plt.rcParams["font.family"] = "Calibri"
-
-        fig, ax = plt.subplots(figsize=(12, 6))
-        ax.set(xlim=(CURRENT_LP.x_start, CURRENT_LP.x_stop), ylim=(0, 1))
-
-        for term in CURRENT_LP.terms:
-            ax.plot([term.x_lb, term.x_lt], [0, 1], linewidth=5, color="red")
-            ax.plot([term.x_lt, term.x_rt], [1, 1], linewidth=5, color="red")
-            ax.plot([term.x_rt, term.x_rb], [1, 0], linewidth=5, color="red")
-
-            # a, b = (term.x_lb, 0), (term.x_lt, 1)
-            # c, d = (10, 0), (10, 1)
-            # ax.plot([10, 10], [0, 1], linewidth=5, color="blue")
-            # line1 = shapely.LineString([a, b])
-            # line2 = shapely.LineString([c, d])
-            # point = line1.intersection(line2)
-            # print(point)
-
-        ax.yaxis.set_visible(False)
-        ax.grid(which="major", color="k", linestyle="--")
-
-        plt.tight_layout()
-        plt.savefig("fig.png", transparent=True)
-        plt.close()
-
         self.label_plot.clear()
-        self.label_plot.setPixmap(QPixmap("fig.png"))
+        self.label_plot.setPixmap(QPixmap(create_plot(CURRENT_LP)))
         self.update_limits()
 
     def show(self):
@@ -389,7 +363,43 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
         super(ControllerWindow, self).__init__()
         self.setupUi(self)
 
+        self.is_loaded = False
+
         self.button_exit.clicked.connect(self.close)
+
+        self.combo_add_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_attribute)
+        self.combo_add_output_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_output_attribute)
+
+    def on_index_changed_combo_add_attribute(self):
+        i = self.combo_add_attribute.currentIndex()
+        if i > -1 and self.is_loaded:
+            widget = CURRENT_PROJECT.add_attribute(DICTIONARY.LP(i))
+            self.layout_scroll_attribute.addWidget(widget)
+            self.combo_add_attribute.setCurrentIndex(-1)
+
+    def on_index_changed_combo_add_output_attribute(self):
+        i = self.combo_add_output_attribute.currentIndex()
+        if i > -1 and self.is_loaded:
+            widget = CURRENT_PROJECT.add_attribute(DICTIONARY.LP(i), is_output=True)
+            self.layout_scroll_output_attribute.addWidget(widget)
+            self.combo_add_output_attribute.setCurrentIndex(-1)
+
+    def show(self):
+        global CURRENT_PROJECT
+        super(ControllerWindow, self).show()
+
+        CURRENT_PROJECT = FuzzyProject(DICTIONARY)
+        self.is_loaded = False
+
+        self.combo_add_attribute.clear()
+        self.combo_add_attribute.addItems(DICTIONARY.LP_titles())
+        self.combo_add_attribute.setCurrentIndex(-1)
+
+        self.combo_add_output_attribute.clear()
+        self.combo_add_output_attribute.addItems(DICTIONARY.LP_titles())
+        self.combo_add_output_attribute.setCurrentIndex(-1)
+
+        self.is_loaded = True
 
     def closeEvent(self, a0):
         super(ControllerWindow, self).closeEvent(a0)

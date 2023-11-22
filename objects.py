@@ -1,5 +1,17 @@
 from settings import *
-from functions import x_axis_iter, unique_id
+from functions import x_axis_iter, unique_id, create_plot
+
+
+class QFuzzyLabel(QtWidgets.QLabel):
+    def __init__(self, parent=None):
+        QtWidgets.QLabel.__init__(self, parent)
+
+    def resizeEvent(self, a0):
+        super(QFuzzyLabel, self).resizeEvent(a0)
+
+        height = int(self.width() * 0.4)
+        self.setMinimumHeight(height)
+        self.setMaximumHeight(height)
 
 
 class Term:
@@ -412,3 +424,73 @@ class Dictionary:
             pp = PP(self)
             pp.load(pp_id)
             self.PPs.append(pp)
+
+
+class FuzzyProjectAttribute:
+    def __init__(self, lp: LP):
+        self.lp = lp
+        self.widget: QWidget = self.__create_attribute_widget()
+
+        self.__objects: tuple[QtWidgets.QGroupBox, QFuzzyLabel, QtWidgets.QSlider]
+        self.__set_connections()
+
+    def __create_attribute_widget(self):
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        cursor = QCursor(QtCore.Qt.PointingHandCursor)
+
+        container = QtWidgets.QGroupBox()
+        container.setTitle(f'"{self.lp.title}" = {self.lp.x_start}')
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        container.setSizePolicy(sizePolicy)
+
+        container_layout = QtWidgets.QVBoxLayout(container)
+        container_layout.setContentsMargins(10, 10, 10, 10)
+        container_layout.setSpacing(10)
+
+        label_plot = QFuzzyLabel(container)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        label_plot.setSizePolicy(sizePolicy)
+        label_plot.clear()
+        pixmap = QPixmap(create_plot(self.lp))
+        label_plot.setPixmap(pixmap)
+        label_plot.setScaledContents(True)
+        container_layout.addWidget(label_plot)
+
+        slider_x_axis = QtWidgets.QSlider(container)
+        slider_x_axis.setOrientation(QtCore.Qt.Horizontal)
+        slider_x_axis.setRange(self.lp.x_start, self.lp.x_stop)
+        slider_x_axis.setValue(self.lp.x_start)
+        slider_x_axis.setCursor(cursor)
+        container_layout.addWidget(slider_x_axis)
+
+        main_layout.addWidget(container)
+        widget = QWidget()
+        widget.setLayout(main_layout)
+
+        self.__objects = (container, label_plot, slider_x_axis)
+
+        return widget
+
+    def __set_connections(self):
+        container, _, slider_x_axis = self.__objects
+
+        def __on_value_changed_slider_x_axis():
+            container.setTitle(f'"{self.lp.title}" = {slider_x_axis.value()}')
+
+        slider_x_axis.valueChanged.connect(__on_value_changed_slider_x_axis)
+
+
+class FuzzyProject:
+    def __init__(self, dictionary_instance):
+        self.__dictionary: Dictionary = dictionary_instance
+        self.attributes: list[FuzzyProjectAttribute] = []
+        self.output_attribute: FuzzyProjectAttribute | None = None
+
+    def add_attribute(self, lp: LP, is_output=False):
+        attribute = FuzzyProjectAttribute(lp)
+        if is_output:
+            self.output_attribute = attribute
+        else:
+            self.attributes.append(attribute)
+        return attribute.widget
