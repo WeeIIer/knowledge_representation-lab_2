@@ -216,9 +216,9 @@ class LPEditorWindow(QWidget, lp_editor_window_form.Ui_lp_editor_window):
             if x_start < x_stop:
                 CURRENT_LP.set_x_start(x_start)
                 CURRENT_LP.set_x_stop(x_stop)
-                CURRENT_LP.update_terms()
-                self.add_terms_to_list()
-                self.change_sliders_range()
+                # CURRENT_LP.update_terms()
+                # self.add_terms_to_list()
+                # self.change_sliders_range()
                 self.draw_plot()
                 self.edit_add_term.setEnabled(True)
             else:
@@ -328,7 +328,7 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
         if CURRENT_PP.is_attributes_fullness():
             CURRENT_PP.save()
             DICTIONARY.load_PPs()
-            self.edit_expression.setText(CURRENT_PP.expression)
+            self.edit_expression.setText(CURRENT_PP.words_expression)
             alert_window.show(self, "Сохранение прошло успешно!")
         else:
             alert_window.show(self, "Сохранение не удалось!")
@@ -345,7 +345,7 @@ class PPEditorWindow(QWidget, pp_editor_window_form.Ui_pp_editor_window):
             CURRENT_PP.add_attribute(is_output=True)
             self.layout_output_attribute.addWidget(CURRENT_PP.output_attribute.widget)
         else:
-            self.edit_expression.setText(CURRENT_PP.expression)
+            self.edit_expression.setText(CURRENT_PP.words_expression)
             for attr in CURRENT_PP.attributes:
                 self.layout_scroll_attribute.addWidget(attr.widget)
                 attr.set_combo_indices()
@@ -372,26 +372,28 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
         self.combo_add_output_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_output_attribute)
 
     def on_clicked_button_save(self):
-        project_productions = CURRENT_PROJECT.productions()
-        pp_pairs = DICTIONARY.PP_pairs()
-        expression = []
+        current_expression = CURRENT_PROJECT.current_indices_expression()
+        productions = []
 
-        for pp_pair in pp_pairs:
-            pp_id, pp_productions = pp_pair
-            print("Сравнение", project_productions, pp_productions)
-            if project_productions == pp_productions:
-                for i, pp_production in enumerate(pp_productions):
-                    _, term_id = pp_production
-                    pp = DICTIONARY.PP(DICTIONARY.PP_index(pp_id))
-                    term_accuracy = CURRENT_PROJECT.attributes[i].best_term()[1][1]
-                    if i > 0:
-                        expression.append(pp.attributes[i].expression(term_accuracy=term_accuracy))
-                    else:
-                        expression.append(pp.attributes[i].expression("ЕСЛИ", term_accuracy))
-                output_attribute = DICTIONARY.PP(DICTIONARY.PP_index(pp_id)).output_attribute
-                expression.append(output_attribute.expression("ТО"))
+        for pp_index, pp_expression in enumerate(DICTIONARY.PP_indices_expression()):
+            if pp_expression == current_expression:
+                production = []
+                pp_output = DICTIONARY.PP(pp_index).output_attribute.lp_id
+                current_output = CURRENT_PROJECT.output_attribute.lp_id
+                if pp_output == current_output:
+                    pp = DICTIONARY.PP(pp_index)
+                    values = CURRENT_PROJECT.current_words_expression()
+                    for attr_id, attr, value in zip(count(0), pp.attributes, values):
+                        accuracy = value[-1]
+                        if attr_id > 0:
+                            production.append(attr.words_expression(term_accuracy=accuracy))
+                        else:
+                            production.append(attr.words_expression("ЕСЛИ", accuracy))
+                    production.append(pp.output_attribute.words_expression("ТО"))
+                productions.append(" ".join(production))
 
-        print(" ".join(expression))
+        self.list_current_pp.clear()
+        self.list_current_pp.addItems(productions)
 
 
     def on_index_changed_combo_add_attribute(self):

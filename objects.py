@@ -176,11 +176,11 @@ class Attribute:
         self.widget: QWidget = self.__create_widget()
         self.__set_combo_connections()
 
-    def expression(self, first_replace=None, term_accuracy=None) -> str:
-        operation, lp_title, connection, term_title = self.data()
+    def words_expression(self, first_place=None, term_accuracy=None) -> str:
+        operation, lp_title, connection, term_title = self.words()
 
-        if first_replace is not None:
-            operation = first_replace
+        if first_place is not None:
+            operation = first_place
 
         if term_accuracy is not None:
             term_title = f'<{term_accuracy}/"{term_title}">'
@@ -215,7 +215,7 @@ class Attribute:
     def is_fullness(self) -> bool:
         return all((self.widget, self.lp_id > -1, self.connection > -1))
 
-    def data(self) -> tuple:
+    def words(self) -> tuple:
         lp = self.__dictionary.LP(self.__dictionary.LP_index(self.lp_id))
         return OPERATIONS[self.operation], lp.title,  CONNECTIONS[self.connection], lp.terms[self.term_id].title
 
@@ -321,22 +321,23 @@ class PP:
     def __init__(self, dictionary_instance):
         self.__dictionary: Dictionary = dictionary_instance
         self.id: int = 0
-        self.expression: str = ""
+        self.words_expression: str = ""
         self.attributes: list[Attribute] = []
         self.output_attribute: Attribute | None = None
 
-    def expression_pairs(self) -> tuple[tuple[int, int]]:
-        return tuple((attr.lp_id, attr.term_id) for attr in self.attributes)
+    def indices_expression(self) -> tuple:
+        pairs = [(attr.lp_id, attr.term_id) for attr in self.attributes]
+        return tuple(pairs)
 
-    def update_expression(self):
+    def update_words_expression(self):
         pieces = []
         for i, attr in enumerate(self.attributes):
             if i > 0:
-                pieces.append(attr.expression())
+                pieces.append(attr.words_expression())
             else:
-                pieces.append(attr.expression("ЕСЛИ"))
-        pieces.append(self.output_attribute.expression("ТО"))
-        self.expression = " ".join(pieces)
+                pieces.append(attr.words_expression("ЕСЛИ"))
+        pieces.append(self.output_attribute.words_expression("ТО"))
+        self.words_expression = " ".join(pieces)
 
     def add_attribute(self, is_output=False, data: tuple = None):
         attribute = Attribute(self.__dictionary, is_output, *data) if data else Attribute(self.__dictionary, is_output)
@@ -356,8 +357,8 @@ class PP:
         if new:
             self.id = unique_id("PPs", "pp_id")
 
-        self.update_expression()
-        data = {"PPs": (self.id, self.expression), "attributes": []}  # Данные для сохранения в БД
+        self.update_words_expression()
+        data = {"PPs": (self.id, self.words_expression), "attributes": []}  # Данные для сохранения в БД
 
         for attr_id, attr in enumerate(self.__all_attributes()):  # Сформировать пакеты данных с атрибутами
             data["attributes"].append((self.id, attr_id, *attr.indices()))
@@ -389,7 +390,7 @@ class PP:
                 sql = f"SELECT * FROM {table_name} WHERE pp_id = ?"
                 data[table_name] = CUR.execute(sql, (pp_id,)).fetchall()
 
-            self.id, self.expression = data["PPs"].pop()
+            self.id, self.words_expression = data["PPs"].pop()
             self.add_attribute(True, data["attributes"].pop()[2:])
             for attr in data["attributes"]:
                 self.add_attribute(False, attr[2:])
@@ -414,14 +415,14 @@ class Dictionary:
         self.LPs: list[LP] = []
         self.PPs: list[PP] = []
 
-    def PP_pairs(self) -> tuple[tuple[int, tuple[tuple[int, int]]]]:
-        return tuple((pp.id, pp.expression_pairs()) for pp in self.PPs)
+    def PP_indices_expression(self) -> tuple:
+        return tuple(pp.indices_expression() for pp in self.PPs)
 
     def LP_titles(self):
         return (lp.title for lp in self.LPs)
 
     def PP_titles(self):
-        return (pp.expression for pp in self.PPs)
+        return (pp.words_expression for pp in self.PPs)
 
     def LP(self, i: int) -> LP:
         return self.LPs[i]
@@ -463,19 +464,18 @@ class Dictionary:
 class FuzzyProjectAttribute:
     def __init__(self, lp: LP):
         self.lp = lp
+
+
+class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
+    def __init__(self, lp: LP):
+        FuzzyProjectAttribute.__init__(self, lp)
         self.widget: QWidget = self.__create_attribute_widget()
 
-        self.activated_terms: list[tuple[float, float]] = []
+        self.max_term_accuracy = (0.0, 0.0)  # x and y
+        self.max_term_indices = (0, 0)  # lp_id and term_id
 
         self.__objects: tuple[QtWidgets.QGroupBox, QFuzzyLabel, QtWidgets.QSlider]
         self.__set_connections()
-
-    def best_term(self) -> tuple:
-        term_id = max(enumerate(self.activated_terms), key=lambda term: term[1])[0]
-        return term_id, self.activated_terms[term_id]
-
-    def production(self) -> tuple[int, int]:
-        return self.lp.id, self.best_term()[0]
 
     def __create_attribute_widget(self):
         main_layout = QtWidgets.QVBoxLayout()
@@ -515,54 +515,95 @@ class FuzzyProjectAttribute:
         return widget
 
     def __set_connections(self):
-        container, label_plot, slider_x_axis = self.__objects
+            container, label_plot, slider_x_axis = self.__objects
 
-        def on_value_changed_slider_x_axis():
-            self.activated_terms.clear()
-            current_x = slider_x_axis.value()
-            container.setTitle(f'"{self.lp.title}" = {current_x}')
+            def on_value_changed_slider_x_axis():
+                terms_accuracy = []
+                current_x = slider_x_axis.value()
+                container.setTitle(f'"{self.lp.title}" = {current_x}')
 
-            def add_intersection(term: Term, ax: matplotlib.axes.Axes):
-                intersection_point = tuple()
-                left_side = (term.x_lb, 0), (term.x_lt, 1)
-                top_side = (term.x_lt, 1), (term.x_rt, 1)
-                right_side = (term.x_rt, 1), (term.x_rb, 0)
+                def add_intersection(term: Term, ax: matplotlib.axes.Axes):
+                    intersection_point = tuple()
+                    left_side = (term.x_lb, 0), (term.x_lt, 1)
+                    top_side = (term.x_lt, 1), (term.x_rt, 1)
+                    right_side = (term.x_rt, 1), (term.x_rb, 0)
 
-                user_position = (current_x, 0), (current_x, 1)
-                ax.plot(*matplotlib_line(user_position), linewidth=5, color="blue")
+                    user_position = (current_x, 0), (current_x, 1)
+                    ax.plot(*matplotlib_line(user_position), linewidth=5, color="blue")
 
-                for current_side in (left_side, top_side, right_side):
-                    user_position = shapely.LineString(user_position)
-                    current_side = shapely.LineString(current_side)
-                    intersection = user_position.intersection(current_side)
-                    if isinstance(intersection, shapely.Point):
-                        x, y = round(intersection.x, 2), round(intersection.y, 2)
-                        intersection_point = (x, y)
-                        ax.plot((self.lp.x_start, x), (y, y), linewidth=5, color="blue")
-                self.activated_terms.append(intersection_point)
+                    for current_side in (left_side, top_side, right_side):
+                        user_position = shapely.LineString(user_position)
+                        current_side = shapely.LineString(current_side)
+                        intersection = user_position.intersection(current_side)
+                        if isinstance(intersection, shapely.Point):
+                            x, y = round(intersection.x, 2), round(intersection.y, 2)
+                            intersection_point = (x, y)
+                            ax.plot((self.lp.x_start, x), (y, y), linewidth=5, color="blue")
+                    terms_accuracy.append(intersection_point)
 
-            label_plot.setPixmap(QPixmap(create_plot(self.lp, additional_func=add_intersection)))
+                label_plot.setPixmap(QPixmap(create_plot(self.lp, additional_func=add_intersection)))
+                self.max_term_accuracy = max(terms_accuracy, key=sum)
+                self.max_term_indices = (self.lp.id, terms_accuracy.index(self.max_term_accuracy))
 
-        slider_x_axis.valueChanged.connect(on_value_changed_slider_x_axis)
+            slider_x_axis.valueChanged.connect(on_value_changed_slider_x_axis)
+
+
+class FuzzyProjectOutputAttribute(FuzzyProjectAttribute):
+    def __init__(self, lp: LP):
+        FuzzyProjectAttribute.__init__(self, lp)
+        self.widget: QWidget = self.__create_attribute_widget()
+
+        self.lp_id = self.lp.id
+
+    def __create_attribute_widget(self):
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        cursor = QCursor(QtCore.Qt.PointingHandCursor)
+
+        container = QtWidgets.QGroupBox()
+        container.setTitle(f'"{self.lp.title}" = {self.lp.x_start}')
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        container.setSizePolicy(sizePolicy)
+
+        container_layout = QtWidgets.QVBoxLayout(container)
+        container_layout.setContentsMargins(10, 10, 10, 10)
+        container_layout.setSpacing(10)
+
+        label_plot = QFuzzyLabel(container)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        label_plot.setSizePolicy(sizePolicy)
+        label_plot.clear()
+        label_plot.setPixmap(QPixmap(create_plot(self.lp)))
+        label_plot.setScaledContents(True)
+        container_layout.addWidget(label_plot)
+
+        main_layout.addWidget(container)
+        widget = QWidget()
+        widget.setLayout(main_layout)
+
+        self.__objects = (container, label_plot)
+
+        return widget
 
 
 class FuzzyProject:
     def __init__(self, dictionary_instance):
         self.__dictionary: Dictionary = dictionary_instance
-        self.attributes: list[FuzzyProjectAttribute] = []
-        self.output_attribute: FuzzyProjectAttribute | None = None
+        self.attributes: list[FuzzyProjectInputAttribute] = []
+        self.output_attribute: FuzzyProjectOutputAttribute | None = None
 
-    def productions(self):
-        pairs = []
-        for attr in self.attributes:
-            term_id, _ = attr.best_term()
-            pairs.append(attr.production())
-        return tuple(pairs)
+    def current_indices_expression(self):
+        return tuple(attr.max_term_indices for attr in self.attributes)
+
+    def current_words_expression(self):
+        return tuple(attr.max_term_accuracy for attr in self.attributes)
 
     def add_attribute(self, lp: LP, is_output=False):
-        attribute = FuzzyProjectAttribute(lp)
         if is_output:
-            self.output_attribute = attribute
+            self.output_attribute = FuzzyProjectOutputAttribute(lp)
+            widget = self.output_attribute.widget
+
         else:
-            self.attributes.append(attribute)
-        return attribute.widget
+            self.attributes.append(FuzzyProjectInputAttribute(lp))
+            widget = self.attributes[-1].widget
+        return widget

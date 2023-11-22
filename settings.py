@@ -4,7 +4,7 @@ import matplotlib
 import os
 import sys
 import sqlite3
-from itertools import chain, repeat
+from itertools import chain, repeat, count
 from typing import Iterator, Iterable
 import shapely
 
