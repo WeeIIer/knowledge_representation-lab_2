@@ -46,6 +46,9 @@ class LP:
         self.x_stop: int = 0
         self.terms: list[Term] = []
 
+    def term_index(self, term: Term):
+        return self.terms.index(term)
+
     def add_term(self, title: str):
         self.update_terms(self.term_titles() + [title])
 
@@ -173,8 +176,16 @@ class Attribute:
         self.widget: QWidget = self.__create_widget()
         self.__set_combo_connections()
 
-    def expression(self) -> str:
-        data = map(QtWidgets.QComboBox.currentText, self.__combo)
+    def expression(self, first_replace=None, term_accuracy=None) -> str:
+        operation, lp_title, connection, term_title = self.data()
+
+        if first_replace is not None:
+            operation = first_replace
+
+        if term_accuracy is not None:
+            term_title = f'<{term_accuracy}/"{term_title}">'
+
+        data = (operation, lp_title, connection, term_title)
         return " ".join(value if not i % 2 else f'"{value}"' for i, value in enumerate(data))
 
     def discard(self):
@@ -205,6 +216,10 @@ class Attribute:
         return all((self.widget, self.lp_id > -1, self.connection > -1))
 
     def data(self) -> tuple:
+        lp = self.__dictionary.LP(self.__dictionary.LP_index(self.lp_id))
+        return OPERATIONS[self.operation], lp.title,  CONNECTIONS[self.connection], lp.terms[self.term_id].title
+
+    def indices(self) -> tuple:
         return self.operation, self.lp_id, self.connection, self.term_id
 
     def __create_widget(self):
@@ -310,8 +325,18 @@ class PP:
         self.attributes: list[Attribute] = []
         self.output_attribute: Attribute | None = None
 
+    def expression_pairs(self) -> tuple[tuple[int, int]]:
+        return tuple((attr.lp_id, attr.term_id) for attr in self.attributes)
+
     def update_expression(self):
-        self.expression = " ".join(map(Attribute.expression, self.__all_attributes()))
+        pieces = []
+        for i, attr in enumerate(self.attributes):
+            if i > 0:
+                pieces.append(attr.expression())
+            else:
+                pieces.append(attr.expression("ЕСЛИ"))
+        pieces.append(self.output_attribute.expression("ТО"))
+        self.expression = " ".join(pieces)
 
     def add_attribute(self, is_output=False, data: tuple = None):
         attribute = Attribute(self.__dictionary, is_output, *data) if data else Attribute(self.__dictionary, is_output)
@@ -335,7 +360,7 @@ class PP:
         data = {"PPs": (self.id, self.expression), "attributes": []}  # Данные для сохранения в БД
 
         for attr_id, attr in enumerate(self.__all_attributes()):  # Сформировать пакеты данных с атрибутами
-            data["attributes"].append((self.id, attr_id, *attr.data()))
+            data["attributes"].append((self.id, attr_id, *attr.indices()))
 
         if new:
             sql = f"INSERT INTO PPs VALUES ({', '.join(repeat('?', len(data['PPs'])))})"
@@ -389,6 +414,9 @@ class Dictionary:
         self.LPs: list[LP] = []
         self.PPs: list[PP] = []
 
+    def PP_pairs(self) -> tuple[tuple[int, tuple[tuple[int, int]]]]:
+        return tuple((pp.id, pp.expression_pairs()) for pp in self.PPs)
+
     def LP_titles(self):
         return (lp.title for lp in self.LPs)
 
@@ -403,6 +431,9 @@ class Dictionary:
 
     def PP(self, i: int) -> PP:
         return self.PPs[i]
+
+    def PP_index(self, pp_id: int) -> int:
+        return [pp.id for pp in self.PPs].index(pp_id)
 
     def discard_LP(self, i: int):
         CUR.execute("DELETE FROM LPs WHERE lp_id = ?", (self.LP(i).id,))
@@ -434,8 +465,17 @@ class FuzzyProjectAttribute:
         self.lp = lp
         self.widget: QWidget = self.__create_attribute_widget()
 
+        self.activated_terms: list[tuple[float, float]] = []
+
         self.__objects: tuple[QtWidgets.QGroupBox, QFuzzyLabel, QtWidgets.QSlider]
         self.__set_connections()
+
+    def best_term(self) -> tuple:
+        term_id = max(enumerate(self.activated_terms), key=lambda term: term[1])[0]
+        return term_id, self.activated_terms[term_id]
+
+    def production(self) -> tuple[int, int]:
+        return self.lp.id, self.best_term()[0]
 
     def __create_attribute_widget(self):
         main_layout = QtWidgets.QVBoxLayout()
@@ -478,25 +518,28 @@ class FuzzyProjectAttribute:
         container, label_plot, slider_x_axis = self.__objects
 
         def on_value_changed_slider_x_axis():
+            self.activated_terms.clear()
             current_x = slider_x_axis.value()
             container.setTitle(f'"{self.lp.title}" = {current_x}')
 
             def add_intersection(term: Term, ax: matplotlib.axes.Axes):
-                y_axis_intersection = []
+                intersection_point = tuple()
                 left_side = (term.x_lb, 0), (term.x_lt, 1)
                 top_side = (term.x_lt, 1), (term.x_rt, 1)
                 right_side = (term.x_rt, 1), (term.x_rb, 0)
-                user_position = (current_x, 0), (current_x, 1)
 
+                user_position = (current_x, 0), (current_x, 1)
                 ax.plot(*matplotlib_line(user_position), linewidth=5, color="blue")
-                for side in (left_side, top_side, right_side):
+
+                for current_side in (left_side, top_side, right_side):
                     user_position = shapely.LineString(user_position)
-                    side = shapely.LineString(side)
-                    intersection = user_position.intersection(side)
+                    current_side = shapely.LineString(current_side)
+                    intersection = user_position.intersection(current_side)
                     if isinstance(intersection, shapely.Point):
-                        # y_axis_intersection.append(intersection.y)
-                        x, y = intersection.x, intersection.y
+                        x, y = round(intersection.x, 2), round(intersection.y, 2)
+                        intersection_point = (x, y)
                         ax.plot((self.lp.x_start, x), (y, y), linewidth=5, color="blue")
+                self.activated_terms.append(intersection_point)
 
             label_plot.setPixmap(QPixmap(create_plot(self.lp, additional_func=add_intersection)))
 
@@ -508,6 +551,13 @@ class FuzzyProject:
         self.__dictionary: Dictionary = dictionary_instance
         self.attributes: list[FuzzyProjectAttribute] = []
         self.output_attribute: FuzzyProjectAttribute | None = None
+
+    def productions(self):
+        pairs = []
+        for attr in self.attributes:
+            term_id, _ = attr.best_term()
+            pairs.append(attr.production())
+        return tuple(pairs)
 
     def add_attribute(self, lp: LP, is_output=False):
         attribute = FuzzyProjectAttribute(lp)

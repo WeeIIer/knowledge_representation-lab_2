@@ -365,10 +365,34 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
 
         self.is_loaded: bool | None = None
 
+        self.button_save.clicked.connect(self.on_clicked_button_save)
         self.button_exit.clicked.connect(self.close)
 
         self.combo_add_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_attribute)
         self.combo_add_output_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_output_attribute)
+
+    def on_clicked_button_save(self):
+        project_productions = CURRENT_PROJECT.productions()
+        pp_pairs = DICTIONARY.PP_pairs()
+        expression = []
+
+        for pp_pair in pp_pairs:
+            pp_id, pp_productions = pp_pair
+            print("Сравнение", project_productions, pp_productions)
+            if project_productions == pp_productions:
+                for i, pp_production in enumerate(pp_productions):
+                    _, term_id = pp_production
+                    pp = DICTIONARY.PP(DICTIONARY.PP_index(pp_id))
+                    term_accuracy = CURRENT_PROJECT.attributes[i].best_term()[1][1]
+                    if i > 0:
+                        expression.append(pp.attributes[i].expression(term_accuracy=term_accuracy))
+                    else:
+                        expression.append(pp.attributes[i].expression("ЕСЛИ", term_accuracy))
+                output_attribute = DICTIONARY.PP(DICTIONARY.PP_index(pp_id)).output_attribute
+                expression.append(output_attribute.expression("ТО"))
+
+        print(" ".join(expression))
+
 
     def on_index_changed_combo_add_attribute(self):
         i = self.combo_add_attribute.currentIndex()
