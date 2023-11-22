@@ -1,5 +1,8 @@
+import matplotlib.axes
+import shapely
+
 from settings import *
-from functions import x_axis_iter, unique_id, create_plot
+from functions import x_axis_iter, unique_id, create_plot, matplotlib_line
 
 
 class QFuzzyLabel(QtWidgets.QLabel):
@@ -272,11 +275,11 @@ class Attribute:
     def __set_combo_connections(self):
         combo_operation, combo_lp, combo_connection, combo_term = self.__combo
 
-        def __combo_operation():
+        def on_index_changed_combo_operation():
             i = combo_operation.currentIndex()
             self.operation = i if i > -1 else 0
 
-        def __combo_lp():
+        def on_index_changed_combo_lp():
             combo_term.clear()
             i = combo_lp.currentIndex()
             if i > -1:
@@ -285,18 +288,18 @@ class Attribute:
             else:
                 self.lp_id = None
 
-        def __combo_connection():
+        def on_index_changed_combo_connection():
             i = combo_connection.currentIndex()
             self.connection = i if i > -1 else 0
 
-        def __combo_term():
+        def on_index_changed_combo_term():
             i = combo_term.currentIndex()
             self.term_id = i if i > -1 else None
 
-        combo_operation.currentIndexChanged.connect(__combo_operation)
-        combo_lp.currentIndexChanged.connect(__combo_lp)
-        combo_connection.currentIndexChanged.connect(__combo_connection)
-        combo_term.currentIndexChanged.connect(__combo_term)
+        combo_operation.currentIndexChanged.connect(on_index_changed_combo_operation)
+        combo_lp.currentIndexChanged.connect(on_index_changed_combo_lp)
+        combo_connection.currentIndexChanged.connect(on_index_changed_combo_connection)
+        combo_term.currentIndexChanged.connect(on_index_changed_combo_term)
 
 
 class PP:
@@ -452,8 +455,7 @@ class FuzzyProjectAttribute:
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         label_plot.setSizePolicy(sizePolicy)
         label_plot.clear()
-        pixmap = QPixmap(create_plot(self.lp))
-        label_plot.setPixmap(pixmap)
+        label_plot.setPixmap(QPixmap(create_plot(self.lp)))
         label_plot.setScaledContents(True)
         container_layout.addWidget(label_plot)
 
@@ -473,12 +475,32 @@ class FuzzyProjectAttribute:
         return widget
 
     def __set_connections(self):
-        container, _, slider_x_axis = self.__objects
+        container, label_plot, slider_x_axis = self.__objects
 
-        def __on_value_changed_slider_x_axis():
-            container.setTitle(f'"{self.lp.title}" = {slider_x_axis.value()}')
+        def on_value_changed_slider_x_axis():
+            current_x = slider_x_axis.value()
+            container.setTitle(f'"{self.lp.title}" = {current_x}')
 
-        slider_x_axis.valueChanged.connect(__on_value_changed_slider_x_axis)
+            def add_intersection(term: Term, ax: matplotlib.axes.Axes):
+                y_axis_intersection = []
+                left_side = (term.x_lb, 0), (term.x_lt, 1)
+                top_side = (term.x_lt, 1), (term.x_rt, 1)
+                right_side = (term.x_rt, 1), (term.x_rb, 0)
+                user_position = (current_x, 0), (current_x, 1)
+
+                ax.plot(*matplotlib_line(user_position), linewidth=5, color="blue")
+                for side in (left_side, top_side, right_side):
+                    user_position = shapely.LineString(user_position)
+                    side = shapely.LineString(side)
+                    intersection = user_position.intersection(side)
+                    if isinstance(intersection, shapely.Point):
+                        # y_axis_intersection.append(intersection.y)
+                        x, y = intersection.x, intersection.y
+                        ax.plot((self.lp.x_start, x), (y, y), linewidth=5, color="blue")
+
+            label_plot.setPixmap(QPixmap(create_plot(self.lp, additional_func=add_intersection)))
+
+        slider_x_axis.valueChanged.connect(on_value_changed_slider_x_axis)
 
 
 class FuzzyProject:

@@ -27,7 +27,7 @@ def unique_id(table_name: str, id_name: str) -> int:
     return 1
 
 
-def create_plot(lp, figure_path="fig.png"):
+def create_plot(lp, figure_path="fig.png", additional_func=None):
     plt.rc("font", size=12)
     plt.rcParams["font.family"] = "Calibri"
 
@@ -39,15 +39,10 @@ def create_plot(lp, figure_path="fig.png"):
         ax.plot([term.x_lt, term.x_rt], [1, 1], linewidth=5, color="red")
         ax.plot([term.x_rt, term.x_rb], [1, 0], linewidth=5, color="red")
 
-        # a, b = (term.x_lb, 0), (term.x_lt, 1)
-        # c, d = (10, 0), (10, 1)
-        # ax.plot([10, 10], [0, 1], linewidth=5, color="blue")
-        # line1 = shapely.LineString([a, b])
-        # line2 = shapely.LineString([c, d])
-        # point = line1.intersection(line2)
-        # print(point)
+        if additional_func is not None:
+            additional_func(term, ax)
 
-    ax.yaxis.set_visible(False)
+    ax.set_yticklabels([])
     ax.grid(which="major", color="k", linestyle="--")
 
     plt.tight_layout()
@@ -55,3 +50,10 @@ def create_plot(lp, figure_path="fig.png"):
     plt.close()
 
     return figure_path
+
+
+def matplotlib_line(standart_line: tuple[tuple[int, int], tuple[int, int]]):
+    point_1, point_2 = standart_line
+    x_1, y_1 = point_1
+    x_2, y_2 = point_2
+    return (x_1, x_2), (y_1, y_2)

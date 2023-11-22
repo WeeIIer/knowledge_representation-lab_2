@@ -363,7 +363,7 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
         super(ControllerWindow, self).__init__()
         self.setupUi(self)
 
-        self.is_loaded = False
+        self.is_loaded: bool | None = None
 
         self.button_exit.clicked.connect(self.close)
 
@@ -387,7 +387,6 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
     def show(self):
         global CURRENT_PROJECT
         super(ControllerWindow, self).show()
-
         CURRENT_PROJECT = FuzzyProject(DICTIONARY)
         self.is_loaded = False
 
