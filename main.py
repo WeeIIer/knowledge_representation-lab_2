@@ -99,13 +99,13 @@ class DictionaryWindow(QWidget, dictionary_window_form.Ui_dictionary_window):
             i = self.list_lp.currentRow()
             if i > -1:
                 CURRENT_LP = DICTIONARY.LP(i)
-                self.close()
+                self.hide()
                 lp_editor_window.show()
         elif self.current_tab == 1:
             i = self.list_pp.currentRow()
             if i > -1:
                 CURRENT_PP = DICTIONARY.PP(i)
-                self.close()
+                self.hide()
                 pp_editor_window.show()
 
     def on_clicked_button_delete(self):
@@ -372,29 +372,9 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
         self.combo_add_output_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_output_attribute)
 
     def on_clicked_button_save(self):
-        current_expression = CURRENT_PROJECT.current_indices_expression()
-        productions = []
-
-        for pp_index, pp_expression in enumerate(DICTIONARY.PP_indices_expression()):
-            if pp_expression == current_expression:
-                production = []
-                pp_output = DICTIONARY.PP(pp_index).output_attribute.lp_id
-                current_output = CURRENT_PROJECT.output_attribute.lp_id
-                if pp_output == current_output:
-                    pp = DICTIONARY.PP(pp_index)
-                    values = CURRENT_PROJECT.current_words_expression()
-                    for attr_id, attr, value in zip(count(0), pp.attributes, values):
-                        accuracy = value[-1]
-                        if attr_id > 0:
-                            production.append(attr.words_expression(term_accuracy=accuracy))
-                        else:
-                            production.append(attr.words_expression("ЕСЛИ", accuracy))
-                    production.append(pp.output_attribute.words_expression("ТО"))
-                productions.append(" ".join(production))
-
-        self.list_current_pp.clear()
-        self.list_current_pp.addItems(productions)
-
+        expressions = CURRENT_PROJECT.expressions_from_activated_rules()
+        self.list_current_rules.clear()
+        self.list_current_rules.addItems(expressions)
 
     def on_index_changed_combo_add_attribute(self):
         i = self.combo_add_attribute.currentIndex()

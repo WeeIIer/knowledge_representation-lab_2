@@ -519,7 +519,7 @@
        <number>10</number>
       </property>
       <item>
-       <widget class="QListWidget" name="list_current_pp">
+       <widget class="QListWidget" name="list_current_rules">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
