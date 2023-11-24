@@ -464,23 +464,23 @@ class Dictionary:
 class FuzzyProjectAttribute:
     def __init__(self, lp: LP):
         self.lp = lp
+        self.is_output = False
 
+        self.__discard_outside = lambda attribute: None
+        self._objects: list[QtWidgets.QGroupBox, QFuzzyLabel] | None = None
+        self.widget: QWidget | None = None
 
-class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
-    def __init__(self, lp: LP):
-        FuzzyProjectAttribute.__init__(self, lp)
-        self.widget: QWidget = self.__create_attribute_widget()
+    def discard(self):
+        self.widget.deleteLater()
+        self.widget = None
+        self.__discard_outside(self)
 
-        self.terms_accuracy: list[tuple[float, float]] = []  # x and y
-        self.terms_indices: list[tuple[int, int]] = []  # lp_id and term_id
+    def set_discard_outside(self, func):
+        self.__discard_outside = func
 
-        self.__objects: tuple[QtWidgets.QGroupBox, QFuzzyLabel, QtWidgets.QSlider]
-        self.__set_connections()
-
-    def __create_attribute_widget(self):
+    def _create_attribute_widget(self):
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
-        cursor = QCursor(QtCore.Qt.PointingHandCursor)
 
         container = QtWidgets.QGroupBox()
         container.setTitle(f'"{self.lp.title}" = {self.lp.x_start}')
@@ -491,6 +491,19 @@ class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
         container_layout.setContentsMargins(10, 10, 10, 10)
         container_layout.setSpacing(10)
 
+        button_delete = QtWidgets.QPushButton(container)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        button_delete.setSizePolicy(size_policy)
+        button_delete.setMinimumHeight(20)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        button_delete.setFont(font)
+        button_delete.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
+        button_delete.setText("Удалить")
+        button_delete.clicked.connect(self.discard)
+        container_layout.addWidget(button_delete)
+
         label_plot = QFuzzyLabel(container)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         label_plot.setSizePolicy(sizePolicy)
@@ -499,23 +512,40 @@ class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
         label_plot.setScaledContents(True)
         container_layout.addWidget(label_plot)
 
+        self._objects = [container, label_plot]
+        return main_layout, container_layout
+
+
+class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
+    def __init__(self, lp: LP):
+        FuzzyProjectAttribute.__init__(self, lp)
+        self.widget = self._create_attribute_widget()
+
+        self.terms_accuracy: list[tuple[float, float]] = []  # x and y
+        self.terms_indices: list[tuple[int, int]] = []  # lp_id and term_id
+
+        self.__set_connections()
+
+    def _create_attribute_widget(self):
+        main_layout, container_layout = super(FuzzyProjectInputAttribute, self)._create_attribute_widget()
+        container = self._objects[0]
+
         slider_x_axis = QtWidgets.QSlider(container)
         slider_x_axis.setOrientation(QtCore.Qt.Horizontal)
         slider_x_axis.setRange(self.lp.x_start, self.lp.x_stop)
         slider_x_axis.setValue(self.lp.x_start)
-        slider_x_axis.setCursor(cursor)
+        slider_x_axis.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         container_layout.addWidget(slider_x_axis)
 
         main_layout.addWidget(container)
         widget = QWidget()
         widget.setLayout(main_layout)
 
-        self.__objects = (container, label_plot, slider_x_axis)
-
+        self._objects.append(slider_x_axis)
         return widget
 
     def __set_connections(self):
-        container, label_plot, slider_x_axis = self.__objects
+        container, label_plot, slider_x_axis = self._objects
 
         def on_value_changed_slider_x_axis():
             points = []
@@ -556,37 +586,17 @@ class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
 class FuzzyProjectOutputAttribute(FuzzyProjectAttribute):
     def __init__(self, lp: LP):
         FuzzyProjectAttribute.__init__(self, lp)
-        self.widget: QWidget = self.__create_attribute_widget()
+        self.widget: QWidget = self._create_attribute_widget()
 
         self.lp_id = self.lp.id
 
-    def __create_attribute_widget(self):
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        cursor = QCursor(QtCore.Qt.PointingHandCursor)
-
-        container = QtWidgets.QGroupBox()
-        container.setTitle(f'"{self.lp.title}" = {self.lp.x_start}')
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        container.setSizePolicy(sizePolicy)
-
-        container_layout = QtWidgets.QVBoxLayout(container)
-        container_layout.setContentsMargins(10, 10, 10, 10)
-        container_layout.setSpacing(10)
-
-        label_plot = QFuzzyLabel(container)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
-        label_plot.setSizePolicy(sizePolicy)
-        label_plot.clear()
-        label_plot.setPixmap(QPixmap(create_plot(self.lp)))
-        label_plot.setScaledContents(True)
-        container_layout.addWidget(label_plot)
+    def _create_attribute_widget(self):
+        main_layout, container_layout = super(FuzzyProjectOutputAttribute, self)._create_attribute_widget()
+        container = self._objects[0]
 
         main_layout.addWidget(container)
         widget = QWidget()
         widget.setLayout(main_layout)
-
-        self.__objects = (container, label_plot)
 
         return widget
 
@@ -607,27 +617,18 @@ class FuzzyProject:
     def add_attribute(self, lp: LP, is_output=False):
         if is_output:
             self.output_attribute = FuzzyProjectOutputAttribute(lp)
+            self.output_attribute.set_discard_outside(self.__discard_attribute_outside)
             widget = self.output_attribute.widget
         else:
             self.attributes.append(FuzzyProjectInputAttribute(lp))
+            self.attributes[-1].set_discard_outside(self.__discard_attribute_outside)
             widget = self.attributes[-1].widget
         return widget
 
-    def __update_activated_rules(self):
-        current_terms_indices = self.current_terms_indices()
-        activated_rules = dict()
-
-        for pp_id, pp_expression in enumerate(self.__dictionary.PP_indices_expression()):
-            if len(pp_expression) == len(current_terms_indices):
-                activated_rules[pp_id] = []
-                for i, pp_attr, current_attr in zip(count(), pp_expression, current_terms_indices):
-                    try:
-                        term_id = current_attr.index(pp_attr)
-                        activated_rules[pp_id].append(self.attributes[i].terms_accuracy[term_id])
-                    except ValueError:
-                        del activated_rules[pp_id]
-                        break
-        self.activated_rules = activated_rules
+    def clear(self):
+        for attr in self.__all_attributes():
+            if attr is not None:
+                attr.discard()
 
     def expressions_from_activated_rules(self):
         self.__update_activated_rules()
@@ -646,3 +647,29 @@ class FuzzyProject:
             expressions.append(" ".join(expression))
 
         return expressions
+
+    def __update_activated_rules(self):
+        current_terms_indices = self.current_terms_indices()
+        activated_rules = dict()
+
+        for pp_id, pp_expression in enumerate(self.__dictionary.PP_indices_expression()):
+            if len(pp_expression) == len(current_terms_indices):
+                activated_rules[pp_id] = []
+                for i, pp_attr, current_attr in zip(count(), pp_expression, current_terms_indices):
+                    try:
+                        term_id = current_attr.index(pp_attr)
+                        activated_rules[pp_id].append(self.attributes[i].terms_accuracy[term_id])
+                    except ValueError:
+                        del activated_rules[pp_id]
+                        break
+        self.activated_rules = activated_rules
+
+    def __discard_attribute_outside(self, attribute: FuzzyProjectInputAttribute | FuzzyProjectOutputAttribute):
+        if isinstance(attribute, FuzzyProjectInputAttribute):
+            i = self.attributes.index(attribute)
+            del self.attributes[i]
+        else:
+            self.output_attribute = None
+
+    def __all_attributes(self) -> list[FuzzyProjectInputAttribute | FuzzyProjectOutputAttribute]:
+        return [*self.attributes, self.output_attribute]

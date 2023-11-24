@@ -408,7 +408,7 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
 
     def closeEvent(self, a0):
         super(ControllerWindow, self).closeEvent(a0)
-
+        CURRENT_PROJECT.clear()
         menu_window.show()
 
 
