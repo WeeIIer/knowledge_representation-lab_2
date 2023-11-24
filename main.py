@@ -374,12 +374,17 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
         self.combo_add_output_attribute.currentIndexChanged.connect(self.on_index_changed_combo_add_output_attribute)
 
     def on_clicked_button_save(self):
-        expressions = CURRENT_PROJECT.expressions_from_activated_rules()
-        # self.list_current_rules.clear()
-        # self.list_current_rules.addItems(expressions)
+        pass
 
     def on_clicked_button_fuzzy(self):
-        pass
+        expressions = CURRENT_PROJECT.expressions_from_activated_rules()
+        CURRENT_PROJECT.add_log_message("> ФАЗИФИКАЦИЯ")
+        if not expressions:
+            CURRENT_PROJECT.add_log_message("> Для данного нечёткого регулятора не найдено продукционных правил.")
+        else:
+            CURRENT_PROJECT.add_log_message("> Данному нечёткому регулятору соответствуют продукционные правила:")
+            for pp_id, expression in zip(CURRENT_PROJECT.activated_rules.keys(), expressions):
+                CURRENT_PROJECT.add_log_message(f"> #{pp_id}: {expression}")
 
     def on_clicked_button_defuzzy(self):
         pass

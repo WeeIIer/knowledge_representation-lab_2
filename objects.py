@@ -607,7 +607,7 @@ class FuzzyLog:
     def set_text_log_widget(self, text_log: QtWidgets.QTextEdit):
         self._text_log = text_log
 
-    def _add_log_message(self, message: str):
+    def add_log_message(self, message: str):
         if self._text_log is not None:
             timing = datetime.now().strftime("%H:%M")
             self._text_log.append(f"[{timing}] {message}")
@@ -634,12 +634,12 @@ class FuzzyProject(FuzzyLog):
                 self.output_attribute.discard()
             self.output_attribute = attribute
             self.output_attribute.set_discard_outside(self.__discard_attribute_outside)
-            self._add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
+            self.add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
         else:
             attribute = FuzzyProjectInputAttribute(lp)
             self.attributes.append(attribute)
             self.attributes[-1].set_discard_outside(self.__discard_attribute_outside)
-            self._add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
+            self.add_log_message(f'В проект добавлен атрибут [выход]: "{attribute.lp.title}"')
 
     def clear(self):
         for attr in self.__all_attributes():
@@ -668,26 +668,29 @@ class FuzzyProject(FuzzyLog):
         current_terms_indices = self.current_terms_indices()
         activated_rules = dict()
 
-        for pp_id, pp_expression in enumerate(self.__dictionary.PP_indices_expression()):
+        for i_pp, pp_expression in enumerate(self.__dictionary.PP_indices_expression()):
             if len(pp_expression) == len(current_terms_indices):
-                activated_rules[pp_id] = []
-                for i, pp_attr, current_attr in zip(count(), pp_expression, current_terms_indices):
+                activated_rules[i_pp] = []
+                pp_output_attribute = self.__dictionary.PP(i_pp).output_attribute
+                for i_attr, pp_attr, current_attr in zip(count(), pp_expression, current_terms_indices):
                     try:
-                        term_id = current_attr.index(pp_attr)
-                        activated_rules[pp_id].append(self.attributes[i].terms_accuracy[term_id])
-                    except ValueError:
-                        del activated_rules[pp_id]
+                        if pp_output_attribute.lp_id == self.output_attribute.lp_id:
+                            term_id = current_attr.index(pp_attr)
+                            activated_rules[i_pp].append(self.attributes[i_attr].terms_accuracy[term_id])
+                    except (ValueError, AttributeError):
+                        del activated_rules[i_pp]
                         break
+
         self.activated_rules = activated_rules
 
     def __discard_attribute_outside(self, attribute: FuzzyProjectInputAttribute | FuzzyProjectOutputAttribute):
         if isinstance(attribute, FuzzyProjectInputAttribute):
             i = self.attributes.index(attribute)
             del self.attributes[i]
-            self._add_log_message(f'Из проекта удалён атрибут [вход]: "{attribute.lp.title}"')
+            self.add_log_message(f'Из проекта удалён атрибут [вход]: "{attribute.lp.title}"')
         else:
             self.output_attribute = None
-            self._add_log_message(f'Из проекта удалён атрибут [выход]: "{attribute.lp.title}"')
+            self.add_log_message(f'Из проекта удалён атрибут [выход]: "{attribute.lp.title}"')
 
     def __all_attributes(self) -> list[FuzzyProjectInputAttribute | FuzzyProjectOutputAttribute]:
         return [*self.attributes, self.output_attribute]
