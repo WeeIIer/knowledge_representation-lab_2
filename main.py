@@ -365,6 +365,8 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
 
         self.is_loaded: bool | None = None
 
+        self.button_fuzzy.clicked.connect(self.on_clicked_button_fuzzy)
+        self.button_defuzzy.clicked.connect(self.on_clicked_button_defuzzy)
         self.button_save.clicked.connect(self.on_clicked_button_save)
         self.button_exit.clicked.connect(self.close)
 
@@ -373,20 +375,30 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
 
     def on_clicked_button_save(self):
         expressions = CURRENT_PROJECT.expressions_from_activated_rules()
-        self.list_current_rules.clear()
-        self.list_current_rules.addItems(expressions)
+        # self.list_current_rules.clear()
+        # self.list_current_rules.addItems(expressions)
+
+    def on_clicked_button_fuzzy(self):
+        pass
+
+    def on_clicked_button_defuzzy(self):
+        pass
 
     def on_index_changed_combo_add_attribute(self):
         i = self.combo_add_attribute.currentIndex()
         if i > -1 and self.is_loaded:
-            widget = CURRENT_PROJECT.add_attribute(DICTIONARY.LP(i))
+            CURRENT_PROJECT.add_attribute(DICTIONARY.LP(i))
+            attribute = CURRENT_PROJECT.attributes[-1]
+            widget = attribute.widget
             self.layout_scroll_attribute.addWidget(widget)
             self.combo_add_attribute.setCurrentIndex(-1)
 
     def on_index_changed_combo_add_output_attribute(self):
         i = self.combo_add_output_attribute.currentIndex()
         if i > -1 and self.is_loaded:
-            widget = CURRENT_PROJECT.add_attribute(DICTIONARY.LP(i), is_output=True)
+            CURRENT_PROJECT.add_attribute(DICTIONARY.LP(i), is_output=True)
+            attribute = CURRENT_PROJECT.output_attribute
+            widget = attribute.widget
             self.layout_scroll_output_attribute.addWidget(widget)
             self.combo_add_output_attribute.setCurrentIndex(-1)
 
@@ -394,7 +406,10 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
         global CURRENT_PROJECT
         super(ControllerWindow, self).show()
         CURRENT_PROJECT = FuzzyProject(DICTIONARY)
+        CURRENT_PROJECT.set_text_log_widget(self.text_log)
         self.is_loaded = False
+
+        self.text_log.clear()
 
         self.combo_add_attribute.clear()
         self.combo_add_attribute.addItems(DICTIONARY.LP_titles())

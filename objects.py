@@ -597,12 +597,25 @@ class FuzzyProjectOutputAttribute(FuzzyProjectAttribute):
         main_layout.addWidget(container)
         widget = QWidget()
         widget.setLayout(main_layout)
-
         return widget
 
 
-class FuzzyProject:
+class FuzzyLog:
+    def __init__(self):
+        self._text_log: QtWidgets.QTextEdit | None = None
+
+    def set_text_log_widget(self, text_log: QtWidgets.QTextEdit):
+        self._text_log = text_log
+
+    def _add_log_message(self, message: str):
+        if self._text_log is not None:
+            timing = datetime.now().strftime("%H:%M")
+            self._text_log.append(f"[{timing}] {message}")
+
+
+class FuzzyProject(FuzzyLog):
     def __init__(self, dictionary_instance):
+        FuzzyLog.__init__(self)
         self.__dictionary: Dictionary = dictionary_instance
         self.attributes: list[FuzzyProjectInputAttribute] = []
         self.output_attribute: FuzzyProjectOutputAttribute | None = None
@@ -616,14 +629,17 @@ class FuzzyProject:
 
     def add_attribute(self, lp: LP, is_output=False):
         if is_output:
-            self.output_attribute = FuzzyProjectOutputAttribute(lp)
+            attribute = FuzzyProjectOutputAttribute(lp)
+            if self.output_attribute is not None:
+                self.output_attribute.discard()
+            self.output_attribute = attribute
             self.output_attribute.set_discard_outside(self.__discard_attribute_outside)
-            widget = self.output_attribute.widget
+            self._add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
         else:
-            self.attributes.append(FuzzyProjectInputAttribute(lp))
+            attribute = FuzzyProjectInputAttribute(lp)
+            self.attributes.append(attribute)
             self.attributes[-1].set_discard_outside(self.__discard_attribute_outside)
-            widget = self.attributes[-1].widget
-        return widget
+            self._add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
 
     def clear(self):
         for attr in self.__all_attributes():
@@ -668,8 +684,10 @@ class FuzzyProject:
         if isinstance(attribute, FuzzyProjectInputAttribute):
             i = self.attributes.index(attribute)
             del self.attributes[i]
+            self._add_log_message(f'Из проекта удалён атрибут [вход]: "{attribute.lp.title}"')
         else:
             self.output_attribute = None
+            self._add_log_message(f'Из проекта удалён атрибут [выход]: "{attribute.lp.title}"')
 
     def __all_attributes(self) -> list[FuzzyProjectInputAttribute | FuzzyProjectOutputAttribute]:
         return [*self.attributes, self.output_attribute]

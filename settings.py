@@ -7,6 +7,7 @@ import sqlite3
 from itertools import chain, repeat, count
 from typing import Iterator, Iterable
 import shapely
+from datetime import datetime
 
 from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QHeaderView, QTableWidgetItem, QFileDialog, QCheckBox
 from PyQt5.QtGui import QPixmap, QPalette, QColor, QCursor, QFont
