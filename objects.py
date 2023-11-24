@@ -1,6 +1,3 @@
-import matplotlib.axes
-import shapely
-
 from settings import *
 from functions import x_axis_iter, unique_id, create_plot, matplotlib_line
 
@@ -581,6 +578,7 @@ class FuzzyProjectInputAttribute(FuzzyProjectAttribute):
             self.terms_indices = terms_indices
 
         slider_x_axis.valueChanged.connect(on_value_changed_slider_x_axis)
+        on_value_changed_slider_x_axis()
 
 
 class FuzzyProjectOutputAttribute(FuzzyProjectAttribute):
@@ -634,12 +632,12 @@ class FuzzyProject(FuzzyLog):
                 self.output_attribute.discard()
             self.output_attribute = attribute
             self.output_attribute.set_discard_outside(self.__discard_attribute_outside)
-            self.add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
+            self.add_log_message(f'В проект добавлен атрибут [выход]: "{attribute.lp.title}"')
         else:
             attribute = FuzzyProjectInputAttribute(lp)
             self.attributes.append(attribute)
             self.attributes[-1].set_discard_outside(self.__discard_attribute_outside)
-            self.add_log_message(f'В проект добавлен атрибут [выход]: "{attribute.lp.title}"')
+            self.add_log_message(f'В проект добавлен атрибут [вход]: "{attribute.lp.title}"')
 
     def clear(self):
         for attr in self.__all_attributes():
@@ -650,12 +648,12 @@ class FuzzyProject(FuzzyLog):
         self.__update_activated_rules()
 
         expressions = []
-        for pp_id, terms_accuracy in self.activated_rules.items():
+        for pp_i, terms_accuracy in self.activated_rules.items():
             expression = []
-            pp = self.__dictionary.PP(self.__dictionary.PP_index(pp_id))
-            for i, pp_attr, term_accuracy in zip(count(), pp.attributes, terms_accuracy):
+            pp = self.__dictionary.PP(pp_i)
+            for attr_i, pp_attr, term_accuracy in zip(count(), pp.attributes, terms_accuracy):
                 _, y = term_accuracy
-                if i > 0:
+                if attr_i > 0:
                     expression.append(pp_attr.expression(term_accuracy=y))
                 else:
                     expression.append(pp_attr.expression("ЕСЛИ", y))

@@ -330,7 +330,7 @@
              <x>0</x>
              <y>0</y>
              <width>502</width>
-             <height>429</height>
+             <height>379</height>
             </rect>
            </property>
            <property name="autoFillBackground">
@@ -481,7 +481,7 @@
              <x>0</x>
              <y>0</y>
              <width>502</width>
-             <height>429</height>
+             <height>379</height>
             </rect>
            </property>
            <property name="autoFillBackground">
@@ -597,7 +597,7 @@
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>100</height>
+          <height>150</height>
          </size>
         </property>
         <property name="verticalScrollBarPolicy">

@@ -410,6 +410,8 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
     def show(self):
         global CURRENT_PROJECT
         super(ControllerWindow, self).show()
+        self.showMaximized()
+
         CURRENT_PROJECT = FuzzyProject(DICTIONARY)
         CURRENT_PROJECT.set_text_log_widget(self.text_log)
         self.is_loaded = False
