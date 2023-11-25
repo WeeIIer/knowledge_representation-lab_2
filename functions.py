@@ -52,8 +52,8 @@ def create_plot(lp, figure_path="fig.png", additional_func=None):
     return figure_path
 
 
-def matplotlib_line(standart_line: tuple[tuple[int, int], tuple[int, int]]):
-    point_1, point_2 = standart_line
+def matplotlib_line(standard_line: tuple[tuple[int, int], tuple[int, int]]):
+    point_1, point_2 = standard_line
     x_1, y_1 = point_1
     x_2, y_2 = point_2
     return (x_1, x_2), (y_1, y_2)

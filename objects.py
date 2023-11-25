@@ -173,6 +173,7 @@ class Attribute:
         self.__combo: tuple[QtWidgets.QComboBox, ...]
 
         self.widget: QWidget = self.__create_widget()
+        self.is_loaded = False
         self.__set_combo_connections()
 
     def expression(self, first_place=None, term_accuracy=None) -> str:
@@ -207,9 +208,10 @@ class Attribute:
     def set_combo_indices(self):
         _, combo_lp, _, combo_term = self.__combo
 
-        combo_lp.setCurrentIndex(self.__dictionary.LP_index(self.lp_id))
-        combo_term.addItems(self.__dictionary.LPs[self.__dictionary.LP_index(self.lp_id)].term_titles())
-        combo_term.setCurrentIndex(self.term_id)
+        lp_id, term_id = self.lp_id, self.term_id
+        combo_lp.addItems(self.__dictionary.LP_titles())
+        combo_lp.setCurrentIndex(self.__dictionary.LP_index(lp_id))
+        combo_term.setCurrentIndex(term_id)
 
     def is_fullness(self) -> bool:
         return all((self.widget, self.lp_id > -1, self.connection > -1))
@@ -248,8 +250,6 @@ class Attribute:
         combo_lp = QtWidgets.QComboBox(container)
         combo_lp.setMinimumSize(QtCore.QSize(0, 40))
         combo_lp.setCursor(cursor)
-        combo_lp.addItems(self.__dictionary.LP_titles())
-        combo_lp.setCurrentIndex(-1)
         container_layout.addWidget(combo_lp)
 
         combo_connection = QtWidgets.QComboBox(container)
@@ -463,7 +463,7 @@ class Dictionary:
 class FuzzyProjectAttribute:
     def __init__(self, lp: LP):
         self.lp = lp
-        self.is_output = False
+        # self.is_output = False
 
         self.__discard_outside = lambda attribute: None
         self._objects: list[QtWidgets.QGroupBox, QFuzzyLabel] | None = None
