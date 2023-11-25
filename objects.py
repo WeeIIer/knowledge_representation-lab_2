@@ -1,3 +1,5 @@
+import matplotlib.patches
+
 from settings import *
 from functions import x_axis_iter, unique_id, create_plot, matplotlib_line
 
@@ -585,12 +587,29 @@ class FuzzyProjectOutputAttribute(FuzzyProjectAttribute):
     def __init__(self, lp: LP):
         FuzzyProjectAttribute.__init__(self, lp)
         self.widget: QWidget = self._create_attribute_widget()
+        self.result = 0
 
-        self.lp_id = self.lp.id
+    def update_plot(self, union_polygon: shapely.Polygon):
+        centroid = union_polygon.centroid
+        polygon_points = list(union_polygon.exterior.coords)
+        self.result = int(centroid.x)
+
+        container, label_plot = self._objects
+        container.setTitle(f'"{self.lp.title}" = {self.result}')
+
+        def add_output_polygon(term: Term, ax: matplotlib.axes.Axes):
+            if term == self.lp.terms[-1]:  # Чтобы цикл ниже выполнился только один раз
+                for i in range(1, len(polygon_points)):
+                    point_1, point_2 = polygon_points[i - 1], polygon_points[i]
+                    ax.plot(*matplotlib_line((point_1, point_2)), linewidth=5, color="green")
+                ax.plot((centroid.x, centroid.x), (0, 1), linewidth=5, color="blue")
+
+        label_plot.setPixmap(QPixmap(create_plot(self.lp, additional_func=add_output_polygon)))
 
     def _create_attribute_widget(self):
         main_layout, container_layout = super(FuzzyProjectOutputAttribute, self)._create_attribute_widget()
         container = self._objects[0]
+        container.setTitle(f'"{self.lp.title}"')
 
         main_layout.addWidget(container)
         widget = QWidget()
@@ -619,11 +638,21 @@ class FuzzyProject(FuzzyLog):
         self.output_attribute: FuzzyProjectOutputAttribute | None = None
         self.activated_rules: dict[int: list[tuple[float, float]]] = {0: [(0.0, 0.0)]}
 
-    def current_terms_indices(self) -> tuple:
-        return tuple(attr.terms_indices for attr in self.attributes)
+    def show(self):
+        expressions = self.__expressions_from_activated_rules()
 
-    def current_terms_accuracy(self) -> tuple:
-        return tuple(attr.terms_accuracy for attr in self.attributes)
+        self.add_log_message("> ФАЗИФИКАЦИЯ")
+        if not expressions:
+            self.add_log_message("> Для данного нечёткого регулятора не найдено продукционных правил.")
+        else:
+            self.add_log_message("> Данному нечёткому регулятору соответствуют продукционные правила:")
+            for pp_id, expression in zip(self.activated_rules.keys(), expressions):
+                self.add_log_message(f"> #{pp_id}: {expression}")
+
+            self.__calculate_output_attribute()
+            self.add_log_message("< ДЕФАЗИФИКАЦИЯ")
+            lp_title, result = self.output_attribute.lp.title, self.output_attribute.result
+            self.add_log_message(f'< Результат вычислений нечёткого регулятора: "{lp_title}" = {result}')
 
     def add_attribute(self, lp: LP, is_output=False):
         if is_output:
@@ -644,16 +673,34 @@ class FuzzyProject(FuzzyLog):
             if attr is not None:
                 attr.discard()
 
-    def expressions_from_activated_rules(self):
+    def __calculate_output_attribute(self):
+        term_polygons = []
+        for i_pp, terms_accuracy in self.activated_rules.items():
+            pp = self.__dictionary.PP(i_pp)
+            _, output_lp_id, _, output_term_id = pp.output_attribute.indices()
+            output_lp = self.__dictionary.LP(self.__dictionary.LP_index(output_lp_id))
+            _, x_lb, x_rb, x_lt, x_rt = output_lp.terms[output_term_id].data()  # output (x_axis_bottom and x_axis_top)
+
+            _, limit_y = max(terms_accuracy, key=lambda point: point[-1])
+            limit_line = shapely.LineString(((output_lp.x_start, limit_y), (output_lp.x_stop, limit_y)))
+            l_s = shapely.LineString(((x_lb, 0), (x_lt, 1)))  # l_s - left side of the term
+            r_s = shapely.LineString(((x_rb, 0), (x_rt, 1)))  # r_s = right side of the term
+            l_s = limit_line.intersection(l_s)
+            r_s = limit_line.intersection(r_s)
+            term_polygons.append(shapely.Polygon(((x_lb, 0), (l_s.x, l_s.y), (r_s.x, r_s.y), (x_rb, 0))))
+
+        self.output_attribute.update_plot(shapely.unary_union(term_polygons))
+
+    def __expressions_from_activated_rules(self):
         self.__update_activated_rules()
 
         expressions = []
-        for pp_i, terms_accuracy in self.activated_rules.items():
+        for i_pp, terms_accuracy in self.activated_rules.items():
             expression = []
-            pp = self.__dictionary.PP(pp_i)
-            for attr_i, pp_attr, term_accuracy in zip(count(), pp.attributes, terms_accuracy):
+            pp = self.__dictionary.PP(i_pp)
+            for i_attr, pp_attr, term_accuracy in zip(count(), pp.attributes, terms_accuracy):
                 _, y = term_accuracy
-                if attr_i > 0:
+                if i_attr > 0:
                     expression.append(pp_attr.expression(term_accuracy=y))
                 else:
                     expression.append(pp_attr.expression("ЕСЛИ", y))
@@ -663,7 +710,7 @@ class FuzzyProject(FuzzyLog):
         return expressions
 
     def __update_activated_rules(self):
-        current_terms_indices = self.current_terms_indices()
+        current_terms_indices = self.__current_terms_indices()
         activated_rules = dict()
 
         for i_pp, pp_expression in enumerate(self.__dictionary.PP_indices_expression()):
@@ -672,7 +719,7 @@ class FuzzyProject(FuzzyLog):
                 pp_output_attribute = self.__dictionary.PP(i_pp).output_attribute
                 for i_attr, pp_attr, current_attr in zip(count(), pp_expression, current_terms_indices):
                     try:
-                        if pp_output_attribute.lp_id == self.output_attribute.lp_id:
+                        if pp_output_attribute.lp_id == self.output_attribute.lp.id:
                             term_id = current_attr.index(pp_attr)
                             activated_rules[i_pp].append(self.attributes[i_attr].terms_accuracy[term_id])
                     except (ValueError, AttributeError):
@@ -680,6 +727,9 @@ class FuzzyProject(FuzzyLog):
                         break
 
         self.activated_rules = activated_rules
+
+    def __current_terms_indices(self) -> tuple:
+        return tuple(attr.terms_indices for attr in self.attributes)
 
     def __discard_attribute_outside(self, attribute: FuzzyProjectInputAttribute | FuzzyProjectOutputAttribute):
         if isinstance(attribute, FuzzyProjectInputAttribute):

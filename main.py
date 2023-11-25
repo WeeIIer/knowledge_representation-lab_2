@@ -365,8 +365,7 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
 
         self.is_loaded: bool | None = None
 
-        self.button_fuzzy.clicked.connect(self.on_clicked_button_fuzzy)
-        self.button_defuzzy.clicked.connect(self.on_clicked_button_defuzzy)
+        self.button_calculate.clicked.connect(self.on_clicked_button_calculate)
         self.button_save.clicked.connect(self.on_clicked_button_save)
         self.button_exit.clicked.connect(self.close)
 
@@ -376,18 +375,8 @@ class ControllerWindow(QWidget, controller_window_form.Ui_controller_window):
     def on_clicked_button_save(self):
         pass
 
-    def on_clicked_button_fuzzy(self):
-        expressions = CURRENT_PROJECT.expressions_from_activated_rules()
-        CURRENT_PROJECT.add_log_message("> ФАЗИФИКАЦИЯ")
-        if not expressions:
-            CURRENT_PROJECT.add_log_message("> Для данного нечёткого регулятора не найдено продукционных правил.")
-        else:
-            CURRENT_PROJECT.add_log_message("> Данному нечёткому регулятору соответствуют продукционные правила:")
-            for pp_id, expression in zip(CURRENT_PROJECT.activated_rules.keys(), expressions):
-                CURRENT_PROJECT.add_log_message(f"> #{pp_id}: {expression}")
-
-    def on_clicked_button_defuzzy(self):
-        pass
+    def on_clicked_button_calculate(self):
+        CURRENT_PROJECT.show()
 
     def on_index_changed_combo_add_attribute(self):
         i = self.combo_add_attribute.currentIndex()

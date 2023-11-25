@@ -35,9 +35,9 @@ def create_plot(lp, figure_path="fig.png", additional_func=None):
     ax.set(xlim=(lp.x_start, lp.x_stop), ylim=(0, 1))
 
     for term in lp.terms:
-        ax.plot([term.x_lb, term.x_lt], [0, 1], linewidth=5, color="red")
-        ax.plot([term.x_lt, term.x_rt], [1, 1], linewidth=5, color="red")
-        ax.plot([term.x_rt, term.x_rb], [1, 0], linewidth=5, color="red")
+        ax.plot((term.x_lb, term.x_lt), (0, 1), linewidth=5, color="red")
+        ax.plot((term.x_lt, term.x_rt), (1, 1), linewidth=5, color="red")
+        ax.plot((term.x_rt, term.x_rb), (1, 0), linewidth=5, color="red")
 
         if additional_func is not None:
             additional_func(term, ax)
