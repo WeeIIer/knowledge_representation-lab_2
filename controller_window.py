@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_controller_window(object):
     def setupUi(self, controller_window):
         controller_window.setObjectName("controller_window")
-        controller_window.resize(1118, 774)
+        controller_window.resize(1000, 700)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -125,7 +125,7 @@ class Ui_controller_window(object):
         self.scroll_attribute.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.scroll_attribute.setObjectName("scroll_attribute")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 502, 379))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 443, 305))
         self.scrollAreaWidgetContents_2.setAutoFillBackground(True)
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_2)
@@ -174,7 +174,7 @@ class Ui_controller_window(object):
         self.scroll_output_attribute.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.scroll_output_attribute.setObjectName("scroll_output_attribute")
         self.scrollAreaWidgetContents_3 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 502, 379))
+        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 443, 305))
         self.scrollAreaWidgetContents_3.setAutoFillBackground(True)
         self.scrollAreaWidgetContents_3.setObjectName("scrollAreaWidgetContents_3")
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_3)

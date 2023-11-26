@@ -1,5 +1,3 @@
-import matplotlib.patches
-
 from settings import *
 from functions import x_axis_iter, unique_id, create_plot, matplotlib_line
 
