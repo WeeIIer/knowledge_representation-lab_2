@@ -248,6 +248,8 @@ class Attribute:
         combo_lp = QtWidgets.QComboBox(container)
         combo_lp.setMinimumSize(QtCore.QSize(0, 40))
         combo_lp.setCursor(cursor)
+        combo_lp.addItems(self.__dictionary.LP_titles())
+        combo_lp.setCurrentIndex(-1)
         container_layout.addWidget(combo_lp)
 
         combo_connection = QtWidgets.QComboBox(container)
