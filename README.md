@@ -13,5 +13,3 @@
 - `shapely`
 - `pyqt5`  
 - `superqt`
-
----
